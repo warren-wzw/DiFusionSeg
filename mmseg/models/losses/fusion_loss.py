@@ -39,6 +39,8 @@ class Fusionloss(nn.Module):
         self.sobelconv = Sobelxy()
         self.mse_criterion = torch.nn.MSELoss()
         self.alpha=1
+        self.beta=1
+        self.gamma=1
 
     def forward(self, image_vis, image_ir, generate_img):
         loss=dict()
@@ -46,7 +48,7 @@ class Fusionloss(nn.Module):
         B, C, W, H = image_vis.shape
         image_ir = image_ir.expand(B, C, W, H)
         x_in_max = torch.max(image_y, image_ir)
-        loss_in = F.l1_loss(generate_img, x_in_max)
+        loss_in = self.alpha*(F.l1_loss(generate_img, x_in_max))
         # Gradient
         y_grad = self.sobelconv(image_y)
         ir_grad = self.sobelconv(image_ir)
@@ -54,8 +56,9 @@ class Fusionloss(nn.Module):
         ir_grad = ir_grad.expand(B, C, K, W, H)
         generate_img_grad = self.sobelconv(generate_img)
         x_grad_joint = torch.maximum(y_grad, ir_grad)
-        loss_grad = F.l1_loss(generate_img_grad, x_grad_joint)
-        loss_fs = loss_in + self.alpha * loss_grad
+        loss_grad = self.beta*(F.l1_loss(generate_img_grad, x_grad_joint))
+        
+        loss_fs = loss_in + loss_grad
         loss["fusion_loss"]=loss_fs
 
         return loss

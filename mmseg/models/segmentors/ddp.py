@@ -359,7 +359,7 @@ class DDP(EncoderDecoder):
             nn.GELU(),
             nn.Linear(time_dim, time_dim)  # [2, 1024]
         )
-        self.fusion = FusionModule_simple()
+        self.fusion = FusionModule_complex()
         self.fusion_loss=Fusionloss()
         self.fusion_down= nn.Sequential(
         nn.Conv2d(3, 256, kernel_size=3, stride=4, padding=1),  # 下采样并扩展通道
@@ -372,17 +372,18 @@ class DDP(EncoderDecoder):
         map of the same size as input."""
         """"""
         img = torch.cat([img, ir], dim=1)#[b,4,480,640]
-        """"""
         feature = self.extract_feat(img)[0]#[b,256,120,160]
         """fusion"""
         fusion_out=self.fusion(feature,img)
-        _,feat_fusion=self.fusionseg(fusion_out)
-        #feat_fusion=self.fusion_down(fusion_out)
+        """fusion with seg"""
+        #_,feat_fusion=self.fusionseg(fusion_out)
+        """fusion without seg"""
+        feat_fusion=self.fusion_down(fusion_out)
         feature_fusion = torch.cat([feature, feat_fusion], dim=1)
         feature_fusion = self.transform(feature_fusion)#turn b,512,80,120 to b,256,80,120
         """save out"""
-        # save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
-        #                   size=img_metas[0]['ori_shape'][:-1])
+        save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
+                          size=img_metas[0]['ori_shape'][:-1])
         """vi"""
         out = self.ddim_sample(feature_fusion,img_metas)
         out = resize(
@@ -403,13 +404,15 @@ class DDP(EncoderDecoder):
         img_ori,ir_ori=img_ori.float(),ir_ori.float()
         fusion_out=self.fusion(feature,img)#[b,3,h,w]
         loss_fusion=self.fusion_loss(img_ori,ir_ori,fusion_out)
-        fusion_seg,feat_fusion=self.fusionseg(fusion_out)
-        loss_seg = F.cross_entropy(fusion_seg, gt_semantic_seg.squeeze(1),ignore_index=255)
-        loss_fusion["seg_loss"]=loss_seg
-        losses.update(loss_fusion)
-        #feat_fusion=self.fusion_down(fusion_out)#b,256,80,120
+        """fusion with seg"""
+        #fusion_seg,feat_fusion=self.fusionseg(fusion_out)
+        # loss_seg = F.cross_entropy(fusion_seg, gt_semantic_seg.squeeze(1),ignore_index=255)
+        #loss_fusion["seg_loss"]=loss_seg
+        """fusion without seg"""
+        feat_fusion=self.fusion_down(fusion_out)#b,256,80,120
         feature_fusion = torch.cat([feature, feat_fusion], dim=1)
         feature_fusion = self.transform(feature_fusion)#turn b,512,80,120 to b,256,80,120
+        losses.update(loss_fusion)
         """gtdown represents the embedding of semantic segmentation labels after downsampling"""
         batch, c, h, w, device, = *feature.shape, feature.device
         gt_down = resize(gt_semantic_seg.float(), size=(h, w), mode="nearest")
@@ -431,7 +434,6 @@ class DDP(EncoderDecoder):
         """conditional input"""
         input_times = self.time_mlp(noise_level)
         loss_decode = self._decode_head_forward_train([feat], input_times, img_metas, gt_semantic_seg,img_ori,ir_ori)
-        # loss_decode["fuison_loss"]=loss_fusion
         losses.update(loss_decode)
         """aux seg head"""
         loss_aux = self._auxiliary_head_forward_train([feature], img_metas, gt_semantic_seg)
@@ -449,7 +451,6 @@ class DDP(EncoderDecoder):
                                                      self.train_cfg,
                                                      img_ori,ir_ori)
 
-        #losses.update(add_prefix(loss_decode, 'decode'))
         return loss_decode
 
     def _decode_head_forward_test(self, x, t, img_metas):

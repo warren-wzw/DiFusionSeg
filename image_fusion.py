@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 
 from mmseg.apis import inference_segmentor, init_segmentor, show_result_pyplot
 from mmseg.core.evaluation import get_palette
-FILENAME="./dataset/TNO/"
+FILENAME="./dataset/testimages/"
 
 # 自然排序函数
 def natural_sort_key(s):
@@ -18,11 +18,11 @@ def main():
     parser.add_argument('--img_file', help='Image file',default=f"{FILENAME}vi")
     parser.add_argument('--ir_file', help='ir file',default=f"{FILENAME}ir")
     parser.add_argument('--config', help='Config file',default="configs/ddp_config.py")
-    parser.add_argument('--checkpoint', help='Checkpoint file',
-                                    default="./exps/msrs_vi_ir_meanstd_ConvNext_fusion_0217/iter_16000.pth")
+    parser.add_argument('--checkpoint', help='Checkpoint file',default=
+                        "./exps/msrs_vi_ir_meanstd_ConvNext_Trans3_fusion/best_mIoU_iter_80000.pth")
     parser.add_argument('--out-file', default=f"./out/vi_ir/{FILENAME}", help='Path to output file')
     parser.add_argument(
-        '--device', default='cuda:1', help='Device used for inference')
+        '--device', default='cuda:0', help='Device used for inference')
     parser.add_argument(
         '--palette',
         default='msrs',

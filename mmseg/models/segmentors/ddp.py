@@ -10,10 +10,12 @@ from mmseg.ops import resize
 from torch.special import expm1
 from einops import rearrange, reduce, repeat
 from mmcv.cnn import ConvModule
+from sklearn.metrics import mutual_info_score
 
 from ..builder import SEGMENTORS
 from .encoder_decoder import EncoderDecoder
 from ..losses.fusion_loss import Fusionloss
+
     
 def log(t, eps=1e-20):
     return torch.log(t.clamp(min=eps))
@@ -271,65 +273,6 @@ class FusionModule_simple(nn.Module):
 
         return output        
 
-class ChannelAttention(nn.Module):
-    def __init__(self, in_channels, reduction=16):
-        super(ChannelAttention, self).__init__()
-        self.avg_pool = nn.AdaptiveAvgPool2d(1)
-        self.fc = nn.Sequential(
-            nn.Linear(in_channels, in_channels // reduction, bias=False),
-            nn.ReLU(inplace=True),
-            nn.Linear(in_channels // reduction, in_channels, bias=False),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        b, c, _, _ = x.size()
-        y = self.avg_pool(x).view(b, c)
-        y = self.fc(y).view(b, c, 1, 1)
-        return x * y.expand_as(x)
-    
-class FusionDown(nn.Module):
-    def __init__(self, in_channels=3, out_channels=256):
-        super(FusionDown, self).__init__()
-        # 第一步：将分辨率从 (320, 480) 下采样到 (160, 240)
-        self.conv1 = nn.Conv2d(in_channels, out_channels // 2, kernel_size=3, stride=2, padding=1)
-        self.bn1 = nn.BatchNorm2d(out_channels // 2)
-        self.relu1 = nn.ReLU(inplace=True)
-        
-        # 第二步：将分辨率从 (160, 240) 下采样到 (80, 120)
-        self.conv2 = nn.Conv2d(out_channels // 2, out_channels, kernel_size=3, stride=2, padding=1)
-        self.bn2 = nn.BatchNorm2d(out_channels)
-        self.relu2 = nn.ReLU(inplace=True)
-        
-        # 通道注意力模块
-        self.ca = ChannelAttention(out_channels)
-
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu1(x)
-        
-        x = self.conv2(x)
-        x = self.bn2(x)
-        x = self.relu2(x)
-        
-        x = self.ca(x)  # 应用通道注意力
-        return x
-
-class CrossGateFusion(nn.Module):
-    def __init__(self, main_ch, fuse_ch):
-        super().__init__()
-        self.gate = nn.Sequential(
-            nn.Conv2d(main_ch + fuse_ch, main_ch, 3, padding=1),
-            nn.Sigmoid()  # 生成0-1的软选择门
-        )
-        self.channel_align = nn.Conv2d(fuse_ch, main_ch, 1)  # 通道对齐
-        
-    def forward(self, main_feat=256, fuse_feat=256):
-        aligned_fuse = self.channel_align(fuse_feat)
-        gate = self.gate(torch.cat([main_feat, aligned_fuse], dim=1))
-        return main_feat * gate + aligned_fuse * (1 - gate)  # 动态加权融合
-
 class SegmentationHead(nn.Module):
     def __init__(self, in_channels=3, num_classes=9):
         super(SegmentationHead, self).__init__()
@@ -352,7 +295,7 @@ class SegmentationHead(nn.Module):
         feat_out = F.avg_pool2d(feat_out, kernel_size=4, stride=4)  # 4x 下采样
 
         return seg_out, feat_out
-    
+
 @SEGMENTORS.register_module()
 class DDP(EncoderDecoder):
     """Encoder Decoder segmentors.
@@ -418,22 +361,29 @@ class DDP(EncoderDecoder):
         )
         self.fusion = FusionModule_simple()
         self.fusion_loss=Fusionloss()
+        self.fusion_down= nn.Sequential(
+        nn.Conv2d(3, 256, kernel_size=3, stride=4, padding=1),  # 下采样并扩展通道
+        nn.ReLU(inplace=True)
+        )
         self.fusionseg=SegmentationHead()
 
     def encode_decode(self, img,ir, img_metas):
-        """create input"""
-        img_ir = torch.cat([img, ir], dim=1)#[b,4,h,w]
-        """extract feature"""
-        feature = self.extract_feat(img_ir)[0]#[b,256,h/4,w/4]
+        """Encode images with backbone and decode into a semantic segmentation
+        map of the same size as input."""
+        """"""
+        img = torch.cat([img, ir], dim=1)#[b,4,480,640]
+        """"""
+        feature = self.extract_feat(img)[0]#[b,256,120,160]
         """fusion"""
-        fusion_out=self.fusion(feature,img_ir)
-        _,feature_fusion=self.fusionseg(fusion_out)
-        feature_fusion = torch.cat([feature, feature_fusion], dim=1)
-        feature_fusion = self.transform(feature_fusion)#turn b,512,h/4,w/4 to b,256,h/4,w/4
+        fusion_out=self.fusion(feature,img)
+        _,feat_fusion=self.fusionseg(fusion_out)
+        #feat_fusion=self.fusion_down(fusion_out)
+        feature_fusion = torch.cat([feature, feat_fusion], dim=1)
+        feature_fusion = self.transform(feature_fusion)#turn b,512,80,120 to b,256,80,120
         """save out"""
         # save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
         #                   size=img_metas[0]['ori_shape'][:-1])
-        """gen seg logits"""
+        """vi"""
         out = self.ddim_sample(feature_fusion,img_metas)
         out = resize(
             input=out,
@@ -445,20 +395,21 @@ class DDP(EncoderDecoder):
     def forward_train(self, img, img_metas, ir,img_ori,ir_ori,gt_semantic_seg):
         losses = dict()
         """create input"""
-        img_ir = torch.cat([img, ir], dim=1)
-        """extract feature"""
-        feature = self.extract_feat(img_ir)[0]  # bs, 256, h/4, w/4
-        """fusion"""
         # save_single_image(img=img_ori,ir=ir_ori)
+        img = torch.cat([img, ir], dim=1)
+        """image"""
+        feature = self.extract_feat(img)[0]  # bs, 256, h/4, w/4
+        """fusion"""
         img_ori,ir_ori=img_ori.float(),ir_ori.float()
-        fusion_out=self.fusion(feature,img_ir)#[b,3,h,w]
+        fusion_out=self.fusion(feature,img)#[b,3,h,w]
         loss_fusion=self.fusion_loss(img_ori,ir_ori,fusion_out)
-        fusion_seg,feature_fusion=self.fusionseg(fusion_out)#b,256,h/4,w/4
+        fusion_seg,feat_fusion=self.fusionseg(fusion_out)
         loss_seg = F.cross_entropy(fusion_seg, gt_semantic_seg.squeeze(1),ignore_index=255)
         loss_fusion["seg_loss"]=loss_seg
         losses.update(loss_fusion)
-        feature_fusion = torch.cat([feature, feature_fusion], dim=1)
-        feature_fusion = self.transform(feature_fusion)#turn b,512,h/4,w/4 to b,256,h/4,w/4
+        #feat_fusion=self.fusion_down(fusion_out)#b,256,80,120
+        feature_fusion = torch.cat([feature, feat_fusion], dim=1)
+        feature_fusion = self.transform(feature_fusion)#turn b,512,80,120 to b,256,80,120
         """gtdown represents the embedding of semantic segmentation labels after downsampling"""
         batch, c, h, w, device, = *feature.shape, feature.device
         gt_down = resize(gt_semantic_seg.float(), size=(h, w), mode="nearest")
@@ -471,18 +422,19 @@ class DDP(EncoderDecoder):
         """random noise"""
         noise = torch.randn_like(gt_down)
         noise_level = self.log_snr(times)
-        padded_noise_level = self.right_pad_dims_to(img_ir, noise_level)#turn [b]->[b,1,1,1]
+        padded_noise_level = self.right_pad_dims_to(img, noise_level)#turn [b]->[b,1,1,1]
         alpha, sigma = log_snr_to_alpha_sigma(padded_noise_level)
         noised_gt = alpha * gt_down + sigma * noise
         """cat input and noise"""
         feat = torch.cat([feature_fusion, noised_gt], dim=1)
-        feat = self.transform(feat)#turn b,512,h/4,w/4 to b,h/4,w/4
+        feat = self.transform(feat)#turn b,512,80,120 to b,256,80,120
         """conditional input"""
         input_times = self.time_mlp(noise_level)
         loss_decode = self._decode_head_forward_train([feat], input_times, img_metas, gt_semantic_seg,img_ori,ir_ori)
+        # loss_decode["fuison_loss"]=loss_fusion
         losses.update(loss_decode)
-        """aux-seg head"""
-        loss_aux = self._auxiliary_head_forward_train([feature_fusion], img_metas, gt_semantic_seg)
+        """aux seg head"""
+        loss_aux = self._auxiliary_head_forward_train([feature], img_metas, gt_semantic_seg)
         losses.update(loss_aux)
         return losses
 

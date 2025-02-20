@@ -22,18 +22,9 @@ from mmseg.models import build_segmentor
 from mmseg.utils import build_ddp, build_dp, get_device, setup_multi_processes
 
 os.environ['MASTER_ADDR'] = '127.0.0.1'
-os.environ['MASTER_PORT'] = '29500'
+os.environ['MASTER_PORT'] = '295000'
 os.environ['WORLD_SIZE'] = '1'
 os.environ['RANK'] = '0'
-
-def PrintModelInfo(model):
-    """Print the parameter size and shape of model detail"""
-    total_params = 0
-    for name, param in model.named_parameters():
-        num_params = torch.prod(torch.tensor(param.shape)).item() * param.element_size() / (1024 * 1024)  # 转换为MB
-        print(f"{name}: {num_params:.4f} MB, Shape: {param.shape}")
-        total_params += num_params
-    print(f"Total number of parameters: {total_params:.4f} MB")  
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -41,8 +32,7 @@ def parse_args():
     parser.add_argument('--config', help='test config file path',
                         default='./configs/ddp_config.py')
     parser.add_argument('--checkpoint', help='checkpoint file',
-                        default='./exps/msrs_vi_ir_meanstd_ConvNext_fusion_0217/best_mIoU_iter_16000.pth')
-    
+                        default='./exps/msrs_vi_ir_meanstd_ConvNext_fusionwithsegsimple_8099/new_model.pth')
     parser.add_argument(
         '--work-dir',
         help=('if specified, the evaluation metric results will be dumped'
@@ -189,6 +179,29 @@ def main():
         distributed = True
         init_dist(args.launcher, **cfg.dist_params)
 
+    #rank, _ = get_dist_info()
+    # allows not to create
+    # if args.work_dir is not None and rank == 0:
+    #     mmcv.mkdir_or_exist(osp.abspath(args.work_dir))
+    #     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
+    #     if args.aug_test:
+    #         json_file = osp.join(args.work_dir,
+    #                              f'eval_multi_scale_{timestamp}.json')
+    #     else:
+    #         json_file = osp.join(args.work_dir,
+    #                              f'eval_single_scale_{timestamp}.json')
+    # elif rank == 0:
+    #     work_dir = osp.join('./work_dirs',
+    #                         osp.splitext(osp.basename(args.config))[0])
+    #     mmcv.mkdir_or_exist(osp.abspath(work_dir))
+    #     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
+    #     if args.aug_test:
+    #         json_file = osp.join(work_dir,
+    #                              f'eval_multi_scale_{timestamp}.json')
+    #     else:
+    #         json_file = osp.join(work_dir,
+    #                              f'eval_single_scale_{timestamp}.json')
+
     # build the dataloader
     # TODO: support multiple images per gpu (only minor changes are needed)
     dataset = build_dataset(cfg.data.test)
@@ -218,7 +231,7 @@ def main():
     # build the model and load checkpoint
     cfg.model.train_cfg = None
     model = build_segmentor(cfg.model, test_cfg=cfg.get('test_cfg'))
-    PrintModelInfo(model)
+    print(model)
     fp16_cfg = cfg.get('fp16', None)
     if fp16_cfg is not None:#skip
         wrap_fp16_model(model)

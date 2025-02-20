@@ -100,8 +100,8 @@ model = dict(
     train_cfg=dict(),
     test_cfg=dict(mode='whole'))
 data = dict(
-    samples_per_gpu=2,
-    workers_per_gpu=2,
+    samples_per_gpu=8,
+    workers_per_gpu=8,
 )
 optimizer = dict(
     _delete_=True,

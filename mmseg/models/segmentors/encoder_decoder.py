@@ -43,14 +43,14 @@ class EncoderDecoder(BaseSegmentor):
             backbone.pretrained = pretrained
         """build way"""
         #self.backbone = builder.build_backbone(backbone)
-        self.neck = builder.build_neck(neck)
+        #self.neck = builder.build_neck(neck)
         """self"""
         #self.backbone = SegNeXt_T(num_classes=9)
         self.backbone = ConvNeXt(in_channels=4)
-        # self.neck = FPN(in_channels=[96, 192, 384,768],
-        #                 out_channels=256,
-        #                 norm_cfg=dict(type='GN', num_groups=32),
-        #                 num_outs=4)
+        self.neck = FPN(in_channels=[96, 192, 384,768],
+                        out_channels=256,
+                        norm_cfg=dict(type='GN', num_groups=32),
+                        num_outs=4)
         self._init_decode_head(decode_head)
         self._init_auxiliary_head(auxiliary_head)
 

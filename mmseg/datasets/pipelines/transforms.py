@@ -268,10 +268,8 @@ class Resize(object):
             img, scale_factor = mmcv.imrescale(results['img'], results['scale'], return_scale=True)
             """"""
             h, w = img.shape[:2]
-            # 调整为能够被 4 整除
-            new_h = (h // 4) * 4 if h % 4 == 0 else ((h // 4) + 1) * 4
-            new_w = (w // 4) * 4 if w % 4 == 0 else ((w // 4) + 1) * 4
-            if (h != new_h) or (w != new_w):  # 只有当尺寸发生变化时才进行调整
+            if h % 2 != 0 or w % 2 != 0:
+                new_h, new_w = h // 2 * 2, w // 2 * 2  # 调整为偶数
                 img = mmcv.imresize(img, (new_w, new_h), interpolation='bilinear', backend=None)
             """"""
             # the w_scale and h_scale has minor difference
@@ -299,10 +297,8 @@ class Resize(object):
                 results[key], results['scale'], interpolation='nearest')
             """"""
             h, w = ir.shape[:2]
-            # 调整为能够被 4 整除
-            new_h = (h // 4) * 4 if h % 4 == 0 else ((h // 4) + 1) * 4
-            new_w = (w // 4) * 4 if w % 4 == 0 else ((w // 4) + 1) * 4
-            if (h != new_h) or (w != new_w):  # 只有当尺寸发生变化时才进行调整
+            if h % 2 != 0 or w % 2 != 0:
+                new_h, new_w = h // 2 * 2, w // 2 * 2  # 调整为偶数
                 ir = mmcv.imresize(ir, (new_w, new_h), interpolation='bilinear', backend=None)
             """"""  
         else:

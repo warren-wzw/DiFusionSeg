@@ -121,7 +121,6 @@ class ConvNeXtBlock(BaseModule):
         if self.linear_pw_conv:
             # Use linear layer to do pointwise conv.
             pw_conv = nn.Linear
-            #pw_conv = partial(nn.Conv2d, kernel_size=1)
         else:
             pw_conv = partial(nn.Conv2d, kernel_size=1)
 

@@ -159,11 +159,11 @@ class FPN(BaseModule):
                     act_cfg=act_cfg,
                     inplace=False)
                 self.fpn_convs.append(extra_fpn_conv)
-        # self.merge=MultiStageMerging(in_channels=[256, 256, 256, 256],
-        #                              out_channels=256,
-        #                              kernel_size=1,
-        #                              norm_cfg=dict(type='GN', num_groups=32),
-        #                              act_cfg=None)
+        self.merge=MultiStageMerging(in_channels=[256, 256, 256, 256],
+                                     out_channels=256,
+                                     kernel_size=1,
+                                     norm_cfg=dict(type='GN', num_groups=32),
+                                     act_cfg=None)
 
     @auto_fp16()
     def forward(self, inputs):
@@ -216,5 +216,6 @@ class FPN(BaseModule):
                         outs.append(self.fpn_convs[i](F.relu(outs[-1])))
                     else:
                         outs.append(self.fpn_convs[i](outs[-1]))
-        #outs=self.merge(tuple(outs))
-        return tuple(outs)
+        #outs=tuple(outs)
+        outs=self.merge(tuple(outs))
+        return outs

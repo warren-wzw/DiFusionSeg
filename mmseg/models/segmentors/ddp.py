@@ -371,16 +371,17 @@ class DDP(EncoderDecoder):
         """Encode images with backbone and decode into a semantic segmentation
         map of the same size as input."""
         """"""
-        img = torch.cat([img, ir], dim=1)#[b,4,480,640]
-        feature = self.extract_feat(img)[0]#[b,256,120,160]
+        img_ir = torch.cat([img, ir], dim=1)#[b,4,h,w]
+        feature = self.extract_feat(img_ir)[0]#[b,256, h/4, w/4]
         """fusion"""
-        fusion_out=self.fusion(feature,img)
+        fusion_out=self.fusion(feature,img_ir)
         """fusion with seg"""
         #_,feat_fusion=self.fusionseg(fusion_out)
         """fusion without seg"""
         feat_fusion=self.fusion_down(fusion_out)
+        """"""
         feature_fusion = torch.cat([feature, feat_fusion], dim=1)
-        feature_fusion = self.transform(feature_fusion)#turn b,512,80,120 to b,256,80,120
+        feature_fusion = self.transform(feature_fusion)#turn b,512, h/4, w/4 to b,256, h/4, w/4
         """save out"""
         save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
                           size=img_metas[0]['ori_shape'][:-1])
@@ -397,21 +398,22 @@ class DDP(EncoderDecoder):
         losses = dict()
         """create input"""
         # save_single_image(img=img_ori,ir=ir_ori)
-        img = torch.cat([img, ir], dim=1)
+        img_ir = torch.cat([img, ir], dim=1)
         """image"""
-        feature = self.extract_feat(img)[0]  # bs, 256, h/4, w/4
+        feature = self.extract_feat(img_ir)[0]  # bs, 256, h/4, w/4
         """fusion"""
         img_ori,ir_ori=img_ori.float(),ir_ori.float()
-        fusion_out=self.fusion(feature,img)#[b,3,h,w]
+        fusion_out=self.fusion(feature,img_ir)#[b,3,h,w]
         loss_fusion=self.fusion_loss(img_ori,ir_ori,fusion_out)
         """fusion with seg"""
-        #fusion_seg,feat_fusion=self.fusionseg(fusion_out)
+        # fusion_seg,feat_fusion=self.fusionseg(fusion_out)
         # loss_seg = F.cross_entropy(fusion_seg, gt_semantic_seg.squeeze(1),ignore_index=255)
-        #loss_fusion["seg_loss"]=loss_seg
+        # loss_fusion["seg_loss"]=loss_seg
         """fusion without seg"""
-        feat_fusion=self.fusion_down(fusion_out)#b,256,80,120
+        feat_fusion=self.fusion_down(fusion_out)#b,256,h/4, w/4
+        """"""
         feature_fusion = torch.cat([feature, feat_fusion], dim=1)
-        feature_fusion = self.transform(feature_fusion)#turn b,512,80,120 to b,256,80,120
+        feature_fusion = self.transform(feature_fusion)#turn b,512,h/4, w/4 to b,256,h/4, w/4
         losses.update(loss_fusion)
         """gtdown represents the embedding of semantic segmentation labels after downsampling"""
         batch, c, h, w, device, = *feature.shape, feature.device
@@ -425,12 +427,12 @@ class DDP(EncoderDecoder):
         """random noise"""
         noise = torch.randn_like(gt_down)
         noise_level = self.log_snr(times)
-        padded_noise_level = self.right_pad_dims_to(img, noise_level)#turn [b]->[b,1,1,1]
+        padded_noise_level = self.right_pad_dims_to(img_ir, noise_level)#turn [b]->[b,1,1,1]
         alpha, sigma = log_snr_to_alpha_sigma(padded_noise_level)
         noised_gt = alpha * gt_down + sigma * noise
         """cat input and noise"""
         feat = torch.cat([feature_fusion, noised_gt], dim=1)
-        feat = self.transform(feat)#turn b,512,80,120 to b,256,80,120
+        feat = self.transform(feat)#turn b,512,h/4, w/4 to b,256,h/4, w/4
         """conditional input"""
         input_times = self.time_mlp(noise_level)
         loss_decode = self._decode_head_forward_train([feat], input_times, img_metas, gt_semantic_seg,img_ori,ir_ori)
@@ -497,6 +499,7 @@ class DDP(EncoderDecoder):
             input_times = self.time_mlp(log_snr)
             mask_logit= self._decode_head_forward_test([feat], input_times, img_metas=img_metas)  # [bs, 9,120,160 ]
             mask_pred = torch.argmax(mask_logit, dim=1)
+            
             """将预测的语义分割结果转化为预测的噪声"""
             mask_pred = self.embedding_table(mask_pred).permute(0, 3, 1, 2)
             mask_pred = (torch.sigmoid(mask_pred) * 2 - 1) * self.bit_scale

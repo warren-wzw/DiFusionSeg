@@ -25,6 +25,7 @@ os.environ['MASTER_ADDR'] = '127.0.0.1'
 os.environ['MASTER_PORT'] = '295000'
 os.environ['WORLD_SIZE'] = '1'
 os.environ['RANK'] = '0'
+GPU=0
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -32,7 +33,7 @@ def parse_args():
     parser.add_argument('--config', help='test config file path',
                         default='./configs/ddp_config.py')
     parser.add_argument('--checkpoint', help='checkpoint file',
-                        default='./exps/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/best_mIoU_iter_48000.pth')
+                        default='./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/best_mIoU_iter_48000.pth')
     parser.add_argument(
         '--work-dir',
         help=('if specified, the evaluation metric results will be dumped'
@@ -63,7 +64,7 @@ def parse_args():
     parser.add_argument(
         '--gpu-id',
         type=int,
-        default=1,
+        default=GPU,
         help='id of gpu to use '
              '(only applicable to non-distributed testing)')
     parser.add_argument(
@@ -179,28 +180,6 @@ def main():
         distributed = True
         init_dist(args.launcher, **cfg.dist_params)
 
-    #rank, _ = get_dist_info()
-    # allows not to create
-    # if args.work_dir is not None and rank == 0:
-    #     mmcv.mkdir_or_exist(osp.abspath(args.work_dir))
-    #     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
-    #     if args.aug_test:
-    #         json_file = osp.join(args.work_dir,
-    #                              f'eval_multi_scale_{timestamp}.json')
-    #     else:
-    #         json_file = osp.join(args.work_dir,
-    #                              f'eval_single_scale_{timestamp}.json')
-    # elif rank == 0:
-    #     work_dir = osp.join('./work_dirs',
-    #                         osp.splitext(osp.basename(args.config))[0])
-    #     mmcv.mkdir_or_exist(osp.abspath(work_dir))
-    #     timestamp = time.strftime('%Y%m%d_%H%M%S', time.localtime())
-    #     if args.aug_test:
-    #         json_file = osp.join(work_dir,
-    #                              f'eval_multi_scale_{timestamp}.json')
-    #     else:
-    #         json_file = osp.join(work_dir,
-    #                              f'eval_single_scale_{timestamp}.json')
 
     # build the dataloader
     # TODO: support multiple images per gpu (only minor changes are needed)

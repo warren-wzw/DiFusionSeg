@@ -18,7 +18,7 @@ from mmseg.apis import init_random_seed, set_random_seed, train_segmentor
 from mmseg.datasets import build_dataset
 from mmseg.models import build_segmentor
 from mmseg.utils import (collect_env, get_device, get_root_logger,setup_multi_processes)
-SAVEPATH='./exps/msrs_vi_ir_meanstd_ConvNext_Trans_fusion'
+SAVEPATH='./exps/FMB_vi_ir_meanstd_ConvNext_Trans_fusioncomplex_0221'
 
 os.environ['MASTER_ADDR'] = '127.0.0.1'
 os.environ['MASTER_PORT'] = '29500'
@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument('--config', help='train config file path',
                         default="./configs/ddp_config.py")
     parser.add_argument('--load-from', help='the checkpoint file to load weights from',
-                        default="./exps/msrs_vi_ir_meanstd_Convne9_trans3_8078/best_mIoU_iter_128000.pth")
+                        default="./exps/Done/FMB_vi_ir_meanstd_Convnetinput4_6664/new_model.pth")
     
     parser.add_argument('--resume-from', help='the checkpoint file to resume from')
     parser.add_argument('--no-validate',action='store_true',help='whether not to evaluate the checkpoint during training')

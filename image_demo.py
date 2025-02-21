@@ -3,21 +3,20 @@ import os
 import sys
 os.chdir(sys.path[0])
 from argparse import ArgumentParser
-
 from mmseg.apis import inference_segmentor, init_segmentor, show_result_pyplot
 from mmseg.core.evaluation import get_palette
-FILENAME="01.png"
+FILENAME="2.png"
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument('--img', help='Image file',default=f"./dataset/test/vi/{FILENAME}")
-    parser.add_argument('--ir', help='ir file',default=f"./dataset/test/ir/{FILENAME}")
+    parser.add_argument('--img', help='Image file',default=f"./dataset/testimages/vi/{FILENAME}")
+    parser.add_argument('--ir', help='ir file',default=f"./dataset/testimages/ir/{FILENAME}")
     parser.add_argument('--config', help='Config file',default="configs/ddp_config.py")
     parser.add_argument('--checkpoint', help='Checkpoint file',default=
-                        "./exps/msrs_vi_ir_meanstd_ConvNext_fusion_8035/iter_80000.pth")
+                        "./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/best_mIoU_iter_48000.pth")
     parser.add_argument('--out-file', default=f"./out/vi_ir/{FILENAME}", help='Path to output file')
     parser.add_argument(
-        '--device', default='cuda:1', help='Device used for inference')
+        '--device', default='cuda:0', help='Device used for inference')
     parser.add_argument(
         '--palette',
         default='msrs',
@@ -25,7 +24,7 @@ def main():
     parser.add_argument(
         '--opacity',
         type=float,
-        default=0.5,
+        default=1.0,
         help='Opacity of painted segmentation map. In (0, 1] range.')
     args = parser.parse_args()
 

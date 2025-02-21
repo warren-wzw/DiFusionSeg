@@ -11,19 +11,19 @@ def cityscapes_classes():
         'bicycle'
     ]
 """MSRS"""
-def msrs_classes():
-    """msrs class names for external use."""
-    return [
-        'unlabelled', 'car', 'person', 'bike', 'curve', 'car_stop',
-        'guardrail', 'color_cone', 'bump'
-    ]
-"""FMB"""
 # def msrs_classes():
 #     """msrs class names for external use."""
 #     return [
-#             'background', 'road', 'sidewalk', 'building', 'lamp', 
-#             'sign','vegetation', 'sky', 'person', 'car', 
-#             'truck', 'bus','motor', 'unlabeled', 'pole']
+#         'unlabelled', 'car', 'person', 'bike', 'curve', 'car_stop',
+#         'guardrail', 'color_cone', 'bump'
+#     ]
+"""FMB"""
+def msrs_classes():
+    """msrs class names for external use."""
+    return [
+            'background', 'road', 'sidewalk', 'building', 'lamp', 
+            'sign','vegetation', 'sky', 'person', 'car', 
+            'truck', 'bus','motor', 'unlabeled', 'pole']
 """PST"""
 # def msrs_classes():
 #     """msrs class names for external use."""

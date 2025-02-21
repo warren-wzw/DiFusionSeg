@@ -288,7 +288,7 @@ class EncoderDecoder(BaseSegmentor):
             seg_logit = self.slide_inference(img, img_meta, rescale)
         else:#this
             seg_logit = self.whole_inference(img, ir,img_meta, rescale)
-        if self.out_channels == 1:
+        if self.out_channels == 1:#skip
             output = F.sigmoid(seg_logit)
         else:
             output = F.softmax(seg_logit, dim=1)
@@ -306,7 +306,7 @@ class EncoderDecoder(BaseSegmentor):
     def simple_test(self, img,ir, img_meta, rescale=True):
         """Simple test with single image."""
         seg_logit = self.inference(img, ir,img_meta, rescale)
-        if self.out_channels == 1:
+        if self.out_channels == 1:#skip
             seg_pred = (seg_logit >
                         self.decode_head.threshold).to(seg_logit).squeeze(1)
         else:

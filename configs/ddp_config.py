@@ -1,4 +1,4 @@
-NUM_CLASS=9
+NUM_CLASS=15
 TimeStep=3
 _base_ = [
     './_base_/cityscapes.py',

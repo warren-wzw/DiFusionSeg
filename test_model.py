@@ -1,4 +1,3 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 import argparse
 import os
 import sys
@@ -26,6 +25,7 @@ os.environ['MASTER_PORT'] = '295000'
 os.environ['WORLD_SIZE'] = '1'
 os.environ['RANK'] = '0'
 GPU=0
+#please use RTX4090 to fork the results
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('--config', help='test config file path',
                         default='./configs/ddp_config.py')
     parser.add_argument('--checkpoint', help='checkpoint file',
-                        default='./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/best_mIoU_iter_48000.pth')
+                        default='./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/48000_14400.pth')
     parser.add_argument(
         '--work-dir',
         help=('if specified, the evaluation metric results will be dumped'
@@ -105,7 +105,7 @@ def parse_args():
     parser.add_argument(
         '--opacity',
         type=float,
-        default=0.5,
+        default=1,
         help='Opacity of painted segmentation map. In (0, 1] range.')
     parser.add_argument(
         '--seed',

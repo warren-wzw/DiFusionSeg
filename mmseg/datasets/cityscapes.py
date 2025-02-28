@@ -18,20 +18,20 @@ class CityscapesDataset(CustomDataset):
     fixed to '_gtFine_labelTrainIds.png' for Cityscapes dataset.
     """
     """MSRS"""
-    # CLASSES = ('unlabelled', 'car', 'person', 'bike', 'curve', 'car_stop',
-    #            'guardrail', 'color_cone', 'bump')
+    CLASSES = ('unlabelled', 'car', 'person', 'bike', 'curve', 'car_stop',
+               'guardrail', 'color_cone', 'bump')
 
-    # PALETTE = [[0, 0, 0], [255, 82, 82], [179, 57, 57], [204, 142, 53],
-    #             [205, 97, 51], [51, 217, 178], [255, 177, 66], [112, 111, 211],
-    #            [52, 172, 224]]
+    PALETTE = [[0, 0, 0], [255, 82, 82], [179, 57, 57], [204, 142, 53],
+                [205, 97, 51], [51, 217, 178], [255, 177, 66], [112, 111, 211],
+               [52, 172, 224]]
     """FMB"""
-    CLASSES = ('background', 'road', 'sidewalk', 'building', 'lamp', 
-               'sign','vegetation', 'sky', 'person', 'car', 
-               'truck', 'bus','motor', 'unlabeled', 'pole')
+    # CLASSES = ('background', 'road', 'sidewalk', 'building', 'lamp', 
+    #            'sign','vegetation', 'sky', 'person', 'car', 
+    #            'truck', 'bus','motor', 'unlabeled', 'pole')
 
-    PALETTE = [[0, 0, 0], [0, 255, 0],[0, 0, 255],[255, 255, 0],[0, 255, 255],
-               [255, 255, 255],[39, 174, 96],[128, 0, 128],[255, 192, 203],[230, 126, 34],
-               [128, 128, 128],[0, 100, 0],[0, 128, 255],[255,0,0],[255, 69, 0]]
+    # PALETTE = [[0, 0, 0], [0, 255, 0],[0, 0, 255],[255, 255, 0],[0, 255, 255],
+    #            [255, 255, 255],[39, 174, 96],[128, 0, 128],[255, 192, 203],[230, 126, 34],
+    #            [128, 128, 128],[0, 100, 0],[0, 128, 255],[255,0,0],[255, 69, 0]]
     """"PST"""
     # CLASSES = ('Background','Fire_extinguisher','Backpack','Hand_drill','Rescue_randy')
 

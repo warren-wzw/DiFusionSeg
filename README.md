@@ -1,18 +1,43 @@
-## VIFFusionSeg
-### 编程语言
-python
-### 项目简介
-
-### 安装说明
-```bash
-pip install -r requirments.txt 
+# DiFusionSeg
+This is official Pytorch implementation of "[xxx]()"
+ - 
 ```
-### 使用说明
+@article{
+}
+```
+## Framework
 
-### TODO
+## Recommended Environment
+ - [ ] torch  1.10.0
+ - [ ] cudatoolkit 11.3.1
+ - [ ] torchvision 0.11.0
+ - [ ] kornia 0.6.5
+ - [ ] pillow  8.3.2
+    
+## To Test
 
-## 关于作者
-* warren@伟
-* 个人博客：其他内容可以参考我的博客[CSDN-warren@伟](https://blog.csdn.net/warren103098?type=blog)
+
+## To Train 
+
+## Motivation
 
 
+## Network Architecture
+
+
+## Experiments
+### Qualitative fusion results
+
+    
+### Quantitative fusion results    
+
+   
+### Segmentation comparison
+
+### Potential of image-level fusion for high-level vision tasks
+
+## If this work is helpful to you, please cite it as：
+```
+@article{
+}
+```

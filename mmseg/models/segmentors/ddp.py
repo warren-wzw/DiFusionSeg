@@ -15,6 +15,7 @@ from sklearn.metrics import mutual_info_score
 from ..builder import SEGMENTORS
 from .encoder_decoder import EncoderDecoder
 from ..losses.fusion_loss import Fusionloss
+from torchvision.transforms import ToPILImage
 
     
 def log(t, eps=1e-20):
@@ -54,7 +55,38 @@ def save_single_image(img=None, ir=None, save_path_img=None, save_path_ir=None,s
         ir_np = ir[0].squeeze(0).cpu().numpy()
         ir_np = (ir_np * 255).astype(np.uint8)  # 反归一化到 [0, 255]
         cv2.imwrite(save_path_ir, ir_np)  # 保存红外图像
+
+def save_channels_as_images(tensor, output_dir='output', file_prefix='channel'):
+    """
+    将输入张量的每个通道保存为单独的图像文件。
+
+    参数:
+    - tensor: 输入的PyTorch张量，形状应为 [b, channels, height, width]。
+    - output_dir: 输出图像文件的目录。
+    - file_prefix: 输出图像文件的前缀。
+    """
+    # 确保输出目录存在
+    import os
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # 将张量从 [b, channels, height, width] 转换为 [channels, b, height, width]
+    tensor = tensor.permute(1, 0, 2, 3)
+
+    # 初始化一个转换器，用于将张量转换为图像
+    to_image = ToPILImage()
+
+    # 遍历每个通道，并将每个通道保存为图像
+    for i in range(tensor.shape[0]):  # 假设tensor.shape[0] 是通道数
+        # 获取单个通道的张量
+        single_channel = tensor[i]
         
+        # 将张量转换为图像
+        img = to_image(single_channel.squeeze())  # 去掉批次维度
+        
+        # 保存图像，文件名格式为 "<output_dir>/<file_prefix>_<channel_index>.png"
+        img.save(os.path.join(output_dir, f'{file_prefix}_{i}.png'))
+              
 class LearnedSinusoidalPosEmb(nn.Module):
     """ following @crowsonkb 's lead with learned sinusoidal pos emb """
     """ https://github.com/crowsonkb/v-diffusion-jax/blob/master/diffusion/models/danbooru_128.py#L8 """
@@ -154,13 +186,16 @@ class FusionModule_complex(nn.Module):
         low_fusion = self.fusion_conv(low_fusion)  # [b,128,80,120]
         # 上采样到高分辨率
         low_up = F.interpolate(low_fusion, scale_factor=4, mode='bilinear', align_corners=False)  # [b,128,320,480]
+        #save_channels_as_images(low_up)
         # ================= 高分辨率分支处理 =================
         high_feat = self.high_conv(x_high)  # [b,128,320,480]
+        save_channels_as_images(high_feat)
         # ================= 跨分辨率融合 =================
         combined = torch.cat([low_up, high_feat], dim=1)  # [b,256,320,480]
         fused = self.cross_fusion(combined)  # [b,128,320,480]
         # ================= 最终输出 =================
         output = self.output_conv(fused)  # [b,3,320,480]
+        #save_single_image(img=output,save_path_img="out.png",size=[480,640])
         # ================= 注意力增强 =================
         se_weight = self.se_block(output)  # [b,3,1,1]
         output = output * se_weight  # [b,3,320,480]

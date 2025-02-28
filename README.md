@@ -8,12 +8,15 @@ This is official Pytorch implementation of "[xxx]()"
 ## Framework
 
 ## Recommended Environment
- - [ ] torch  1.10.0
- - [ ] cudatoolkit 11.3.1
- - [ ] torchvision 0.11.0
- - [ ] kornia 0.6.5
- - [ ] pillow  8.3.2
-    
+ - [ ] torch  1.13.1
+ - [ ] cudatoolkit 11.8
+ - [ ] torchvision 0.14.0
+ - [ ] mmcv  2.2.1
+ - [ ] mmcv-full 1.7.2
+ - [ ] mmsegmentation 0.30.0
+ - [ ] numpy  1.26.4
+ - [ ] opencv-python 4.10.0.84
+
 ## To Test
 
 

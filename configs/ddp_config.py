@@ -1,7 +1,15 @@
-NUM_CLASS=9
+MODEL="pst"
+if MODEL=='msrs':
+    NUM_CLASS=9
+elif MODEL=='mfd':
+    NUM_CLASS=9
+elif MODEL=='fmb':
+    NUM_CLASS=15
+elif MODEL=='pst':
+    NUM_CLASS=9
 TimeStep=3
 _base_ = [
-    './_base_/cityscapes.py',
+    f'./_base_/{MODEL}.py',
     './_base_/default_runtime.py',
     './_base_/schedule_160k.py'
 ]

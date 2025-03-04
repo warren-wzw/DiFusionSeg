@@ -13,12 +13,12 @@ import torch
 import torch.distributed as dist
 from mmcv.runner import get_dist_info, init_dist
 from mmcv.utils import Config, DictAction, get_git_hash
-from mmseg import __version__
-from mmseg.apis import init_random_seed, set_random_seed, train_segmentor
-from mmseg.datasets import build_dataset
-from mmseg.models import build_segmentor
-from mmseg.utils import (collect_env, get_device, get_root_logger,setup_multi_processes)
-SAVEPATH='./exps/FMB_vi_ir_meanstd_ConvNext_Trans_fusioncomplex_0221'
+from model import __version__
+from model.apis import init_random_seed, set_random_seed, train_segmentor
+from model.datasets import build_dataset
+from model.models import build_segmentor
+from model.utils import (collect_env, get_device, get_root_logger,setup_multi_processes)
+SAVEPATH='./exps/MSRS_vi_ir_meanstd_ConvNext_Trans_fusioncomplex_0228'
 
 os.environ['MASTER_ADDR'] = '127.0.0.1'
 os.environ['MASTER_PORT'] = '29500'
@@ -40,7 +40,7 @@ def parse_args():
     parser.add_argument('--config', help='train config file path',
                         default="./configs/ddp_config.py")
     parser.add_argument('--load-from', help='the checkpoint file to load weights from',
-                        default="./exps/Done/FMB_vi_ir_meanstd_Convnetinput4_6664/new_model.pth")
+                        default="./exps/Done/msrs_vi_ir_meanstd_Convnetinput4_8102/new_model.pth")
     
     parser.add_argument('--resume-from', help='the checkpoint file to resume from')
     parser.add_argument('--no-validate',action='store_true',help='whether not to evaluate the checkpoint during training')
@@ -105,8 +105,7 @@ def main():
         cfg.model,
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
-    PrintModelInfo(model)
-    #model.init_weights()
+    #PrintModelInfo(model)
     datasets = [build_dataset(cfg.data.train)]
     cfg.checkpoint_config.meta = dict(
         mmseg_version=f'{__version__}+{get_git_hash()[:7]}',

@@ -14,11 +14,11 @@ from mmcv.runner import (get_dist_info, init_dist, load_checkpoint,
                          wrap_fp16_model)
 from mmcv.utils import DictAction
 
-from mmseg import digit_version
-from mmseg.apis import multi_gpu_test, single_gpu_test, set_random_seed
-from mmseg.datasets import build_dataloader, build_dataset
-from mmseg.models import build_segmentor
-from mmseg.utils import build_ddp, build_dp, get_device, setup_multi_processes
+from model import digit_version
+from model.apis import multi_gpu_test, single_gpu_test, set_random_seed
+from model.datasets import build_dataloader, build_dataset
+from model.models import build_segmentor
+from model.utils import build_ddp, build_dp, get_device, setup_multi_processes
 
 os.environ['MASTER_ADDR'] = '127.0.0.1'
 os.environ['MASTER_PORT'] = '295000'
@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('--config', help='test config file path',
                         default='./configs/ddp_config.py')
     parser.add_argument('--checkpoint', help='checkpoint file',
-                        default='./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/48000_14400.pth')
+                        default='./exps/Done/pst_vi_ir_meanstd_ConvNext_fusion_8165/best_mIoU_iter_80000.pth')
     parser.add_argument(
         '--work-dir',
         help=('if specified, the evaluation metric results will be dumped'
@@ -56,7 +56,7 @@ def parse_args():
              ' for generic datasets, and "cityscapes" for Cityscapes')
     parser.add_argument('--show', action='store_true', help='show results')
     parser.add_argument(
-        '--show-dir', default='out/test',help='directory where painted images will be saved')
+        '--show-dir', default='out/seg',help='directory where painted images will be saved')
     parser.add_argument(
         '--gpu-collect',
         action='store_true',
@@ -210,7 +210,6 @@ def main():
     # build the model and load checkpoint
     cfg.model.train_cfg = None
     model = build_segmentor(cfg.model, test_cfg=cfg.get('test_cfg'))
-    print(model)
     fp16_cfg = cfg.get('fp16', None)
     if fp16_cfg is not None:#skip
         wrap_fp16_model(model)

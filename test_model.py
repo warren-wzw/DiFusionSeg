@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('--config', help='test config file path',
                         default='./configs/ddp_config.py')
     parser.add_argument('--checkpoint', help='checkpoint file',
-                        default='./exps/Done/pst_vi_ir_meanstd_ConvNext_fusion_8165/best_mIoU_iter_80000.pth')
+                        default='./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/48000_14400.pth')
     parser.add_argument(
         '--work-dir',
         help=('if specified, the evaluation metric results will be dumped'

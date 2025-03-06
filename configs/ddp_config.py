@@ -1,4 +1,4 @@
-MODEL="pst"
+MODEL="mfd"
 if MODEL=='msrs':
     NUM_CLASS=9
 elif MODEL=='mfd':

@@ -5,7 +5,7 @@ os.chdir(sys.path[0])
 from argparse import ArgumentParser
 from model.apis import inference_segmentor, init_segmentor, show_result_pyplot
 from model.core.evaluation import get_palette
-FILENAME="2.png"
+FILENAME="01290N.png"
 
 def main():
     parser = ArgumentParser()
@@ -13,7 +13,7 @@ def main():
     parser.add_argument('--ir', help='ir file',default=f"./dataset/testimages/ir/{FILENAME}")
     parser.add_argument('--config', help='Config file',default="configs/ddp_config.py")
     parser.add_argument('--checkpoint', help='Checkpoint file',default=
-                        "./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/best_mIoU_iter_48000.pth")
+                        "./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/48000_14400.pth")
     parser.add_argument('--out-file', default=f"./out/seg/{FILENAME}", help='Path to output file')
     parser.add_argument(
         '--device', default='cuda:0', help='Device used for inference')

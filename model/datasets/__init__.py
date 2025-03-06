@@ -26,12 +26,3 @@ __all__ = [
     'CityscapesDataset','CustomDataset','ConcatDataset','MultiImageMixDataset','RepeatDataset'
 ]
 
-# __all__ = [
-#     'CustomDataset', 'build_dataloader', 'ConcatDataset', 'RepeatDataset',
-#     'DATASETS', 'build_dataset', 'PIPELINES', 'CityscapesDataset',
-#     'PascalVOCDataset', 'ADE20KDataset', 'PascalContextDataset',
-#     'PascalContextDataset59', 'ChaseDB1Dataset', 'DRIVEDataset', 'HRFDataset',
-#     'STAREDataset', 'DarkZurichDataset', 'NightDrivingDataset',
-#     'COCOStuffDataset', 'LoveDADataset', 'MultiImageMixDataset',
-#     'iSAIDDataset', 'ISPRSDataset', 'PotsdamDataset'
-# ]

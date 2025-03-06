@@ -39,12 +39,12 @@ def init_segmentor(config, checkpoint=None, device='cuda:0'):
         if 'CLASSES' in checkpoint.get('meta', {}):  # TODO
             model.CLASSES = checkpoint['meta']['CLASSES']
         else:
-            model.CLASSES = get_classes("cityscapes")
+            model.CLASSES = get_classes("msrs")
 
         if 'PALETTE' in checkpoint.get('meta', {}):
             model.PALETTE = checkpoint['meta']['PALETTE']
         else:
-            model.PALETTE = get_palette("cityscapes")
+            model.PALETTE = get_palette("msrs")
 
         # model.CLASSES = checkpoint['meta']['CLASSES']
         # model.PALETTE = checkpoint['meta']['PALETTE']

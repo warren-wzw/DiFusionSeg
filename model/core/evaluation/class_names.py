@@ -2,12 +2,12 @@
 import mmcv
 
 """MSRS"""
-# def msrs_classes():
-#     """msrs class names for external use."""
-#     return [
-#         'unlabelled', 'car', 'person', 'bike', 'curve', 'car_stop',
-#         'guardrail', 'color_cone', 'bump'
-#     ]
+def msrs_classes():
+    """msrs class names for external use."""
+    return [
+        'unlabelled', 'car', 'person', 'bike', 'curve', 'car_stop',
+        'guardrail', 'color_cone', 'bump'
+    ]
 """FMB"""
 # def msrs_classes():
 #     """msrs class names for external use."""
@@ -16,10 +16,10 @@ import mmcv
 #             'sign','vegetation', 'sky', 'person', 'car', 
 #             'truck', 'bus','motor', 'unlabeled', 'pole']
 """PST"""
-def msrs_classes():
-    """msrs class names for external use."""
-    return [
-            'Background','Fire_extinguisher','Backpack','Hand_drill','Rescue_randy']
+# def msrs_classes():
+#     """msrs class names for external use."""
+#     return [
+#             'Background','Fire_extinguisher','Backpack','Hand_drill','Rescue_randy']
 
 """"""
 def cityscapes_classes():

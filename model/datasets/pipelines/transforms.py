@@ -557,6 +557,7 @@ class Normalize(object):
         ir_mean=np.array([104])
         ir_std=np.array([43])
         results['img'] = mmcv.imnormalize(results['img'], self.mean, self.std,self.to_rgb)
+        #results['ir'] = cv2.convertScaleAbs(results['ir'], alpha=1.5, beta=-80)
         results['ir'] = mmcv.imnormalize(results['ir'], ir_mean, ir_std,False)
         # results['img'] = min_max_normalize(results['img'])
         #results['ir'] = min_max_normalize(results['ir'])

@@ -427,8 +427,8 @@ class DDP(EncoderDecoder):
         feature_fusion = torch.cat([feature, feat_fusion], dim=1)
         feature_fusion = self.transform(feature_fusion)#turn b,512, h/4, w/4 to b,256, h/4, w/4
         """save out"""
-        # save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
-        #                   size=img_metas[0]['ori_shape'][:-1])
+        save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
+                          size=img_metas[0]['ori_shape'][:-1])
         """vi"""
         out = self.ddim_sample(feature_fusion,img_metas)
         out = resize(

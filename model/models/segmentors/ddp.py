@@ -474,8 +474,8 @@ class DDP(EncoderDecoder):
 
             padded_log_snr = self.right_pad_dims_to(mask_t, log_snr) #pad log_snr [1]-[1,1,1,1]
             padded_log_snr_next = self.right_pad_dims_to(mask_t, log_snr_next) #pad log_snr [1]-[1,1,1,1]
-            alpha, sigma = log_snr_to_alpha_sigma(padded_log_snr)
-            alpha_next, sigma_next = log_snr_to_alpha_sigma(padded_log_snr_next)
+            sigma, alpha = log_snr_to_alpha_sigma(padded_log_snr)
+            sigma_next, alpha_next = log_snr_to_alpha_sigma(padded_log_snr_next)
 
             input_times = self.time_mlp(log_snr)#1->[1,1024]
             # single_channel_image = feat.mean(dim=1).unsqueeze(0)
@@ -485,14 +485,14 @@ class DDP(EncoderDecoder):
             """turn seg results to pred noise"""
             mask_pred = self.embedding_table(mask_pred).permute(0, 3, 1, 2)
             mask_pred = (torch.sigmoid(mask_pred) * 2 - 1) * self.bit_scale #scale to -0.01-0.01
-            """epsilon_t=(x_t-alpha_t*x_t)/sigma_t"""
-            pred_noise = (mask_t - alpha * mask_pred) / sigma.clamp(min=1e-8)
+            """epsilon_t=(x_t-sigma_t*x_t)/alpha_t"""
+            pred_noise = (mask_t - sigma * mask_pred) / alpha.clamp(min=1e-8)
             # single_channel_image = pred_noise.mean(dim=1).unsqueeze(0)
             # save_channels_as_images(single_channel_image)
-            """x_t-1=alpha_t-1*x_t+sigma_t-1*epsilon_t"""
+            """x_t-1=alpha_t-1*epsilon_t+sigma_t-1*x_t"""
+            mask_t = alpha_next*pred_noise+sigma_next*mask_pred 
             # single_channel_image = mask_t.mean(dim=1).unsqueeze(0)
             # save_channels_as_images(single_channel_image)
-            mask_t = alpha_next*mask_pred + sigma_next*pred_noise
             
         logit = mask_logit.mean(dim=0, keepdim=True)
         return logit

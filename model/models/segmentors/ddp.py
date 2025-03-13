@@ -331,6 +331,25 @@ class SegmentationHead(nn.Module):
 
         return seg_out, feat_out
 
+class gatedFusion(nn.Module):
+
+    def __init__(self, dim):
+        super(gatedFusion, self).__init__()
+        self.fc1 = nn.Linear(dim, dim, bias=True)
+        self.fc2 = nn.Linear(dim, dim, bias=True)
+
+    def forward(self, x1, x2):
+        x1=x1.permute(0,2,3,1)
+        x2=x2.permute(0,2,3,1)
+        x11 = self.fc1(x1)
+        x22 = self.fc2(x2)
+        # 通过门控单元生成权重表示
+        z = torch.sigmoid(x11+x22)
+        # 对两部分输入执行加权和
+        out = z*x1 + (1-z)*x2
+        return out
+
+      
 @SEGMENTORS.register_module()
 class DDP(EncoderDecoder):
     def __init__(self,
@@ -393,6 +412,7 @@ class DDP(EncoderDecoder):
         nn.ReLU(inplace=True)
         )
         #self.fusionseg=SegmentationHead()
+        #self.grad_fusion=GatedFusionUnit()
     """"""
     def right_pad_dims_to(self, x, t):
         padding_dims = x.ndim - t.ndim
@@ -426,6 +446,8 @@ class DDP(EncoderDecoder):
         """"""
         feature_fusion = torch.cat([feature, feat_fusion], dim=1)
         feature_fusion = self.transform(feature_fusion)#turn b,512, h/4, w/4 to b,256, h/4, w/4
+        # feature_fusion = self.grad_fusion(feature,feat_fusion)#turn b,256, h/4, w/4,b,256, h/4, w/4 to b,256, h/4, w/4
+        # #feature_fusion=feature_fusion.permute(0,3,1,2)
         """save out"""
         save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
                           size=img_metas[0]['ori_shape'][:-1])
@@ -445,24 +467,32 @@ class DDP(EncoderDecoder):
         feature = repeat(feature, 'b c h w -> (r b) c h w', r=self.randsteps)
         mask_t = torch.randn((self.randsteps, self.decode_head.in_channels[0], h, w), device=device)
         for idx, (times_now, times_next) in enumerate(time_pairs):
-            feat = torch.cat([feature,mask_t], dim=1)
-            feat = self.transform(feat)
-            log_snr = self.log_snr(times_now)
-            log_snr_next = self.log_snr(times_next)
+            feat = torch.cat([feature,mask_t], dim=1) #[b,512,h/4,w/4]
+            feat = self.transform(feat)#[b,256,h/4,w/4]
+            log_snr = self.log_snr(times_now)#[1]
+            log_snr_next = self.log_snr(times_next)#[1]
 
             padded_log_snr = self.right_pad_dims_to(mask_t, log_snr) #pad log_snr [1]-[1,1,1,1]
             padded_log_snr_next = self.right_pad_dims_to(mask_t, log_snr_next) #pad log_snr [1]-[1,1,1,1]
             alpha, sigma = log_snr_to_alpha_sigma(padded_log_snr)
             alpha_next, sigma_next = log_snr_to_alpha_sigma(padded_log_snr_next)
 
-            input_times = self.time_mlp(log_snr)#[1,1024]
+            input_times = self.time_mlp(log_snr)#1->[1,1024]
+            # single_channel_image = feat.mean(dim=1).unsqueeze(0)
+            # save_channels_as_images(single_channel_image)
             mask_logit= self._decode_head_forward_test([feat], input_times)  # [bs, 256,h/4,w/4 ]-[b,9,h/4,w/4]
-            mask_pred = torch.argmax(mask_logit, dim=1)
-            """将预测的语义分割结果转化为预测的噪声"""
+            mask_pred = torch.argmax(mask_logit, dim=1)#[b,1,h/4,w/4]
+            """turn seg results to pred noise"""
             mask_pred = self.embedding_table(mask_pred).permute(0, 3, 1, 2)
             mask_pred = (torch.sigmoid(mask_pred) * 2 - 1) * self.bit_scale #scale to -0.01-0.01
+            """epsilon_t=(x_t-alpha_t*x_t)/sigma_t"""
             pred_noise = (mask_t - alpha * mask_pred) / sigma.clamp(min=1e-8)
-            mask_t = mask_pred * alpha_next + pred_noise * sigma_next
+            # single_channel_image = pred_noise.mean(dim=1).unsqueeze(0)
+            # save_channels_as_images(single_channel_image)
+            """x_t-1=alpha_t-1*x_t+sigma_t-1*epsilon_t"""
+            # single_channel_image = mask_t.mean(dim=1).unsqueeze(0)
+            # save_channels_as_images(single_channel_image)
+            mask_t = alpha_next*mask_pred + sigma_next*pred_noise
             
         logit = mask_logit.mean(dim=0, keepdim=True)
         return logit

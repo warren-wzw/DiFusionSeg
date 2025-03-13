@@ -125,7 +125,7 @@ def show_result_pyplot(model,
                        result,
                        palette=None,
                        fig_size=(15, 10),
-                       opacity=0.8,
+                       opacity=0.3,
                        title='',
                        block=True,
                        out_file=None):
@@ -160,3 +160,46 @@ def show_result_pyplot(model,
     plt.show(block=block)
     if out_file is not None:
         mmcv.imwrite(img, out_file)
+
+def show_result_pyplot_self(model,
+                       img,
+                       result,
+                       palette=None,
+                       fig_size=(15, 10),
+                       opacity=0.3,
+                       title='',
+                       block=True,
+                       out_file=None,
+                       fusion_img=None):
+    """Visualize the segmentation results on the image.
+
+    Args:
+        model (nn.Module): The loaded segmentor.
+        img (str or np.ndarray): Image filename or loaded image.
+        result (list): The segmentation result.
+        palette (list[list[int]]] | None): The palette of segmentation
+            map. If None is given, random palette will be generated.
+            Default: None
+        fig_size (tuple): Figure size of the pyplot figure.
+        opacity(float): Opacity of painted segmentation map.
+            Default 0.5.
+            Must be in (0, 1] range.
+        title (str): The title of pyplot figure.
+            Default is ''.
+        block (bool): Whether to block the pyplot figure.
+            Default is True.
+        out_file (str or None): The path to write the image.
+            Default: None.
+    """
+    if hasattr(model, 'module'):
+        model = model.module
+    img = model.show_result(
+        fusion_img, result, palette=palette, show=False, opacity=opacity)
+    plt.figure(figsize=fig_size)
+    plt.imshow(mmcv.bgr2rgb(img))
+    plt.title(title)
+    plt.tight_layout()
+    plt.show(block=block)
+    if out_file is not None:
+        mmcv.imwrite(img, out_file)
+

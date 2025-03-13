@@ -24,7 +24,7 @@ os.environ['MASTER_ADDR'] = '127.0.0.1'
 os.environ['MASTER_PORT'] = '295000'
 os.environ['WORLD_SIZE'] = '1'
 os.environ['RANK'] = '0'
-GPU=0
+GPU=1
 #please use RTX4090 to fork the results
 
 def parse_args():
@@ -33,7 +33,7 @@ def parse_args():
     parser.add_argument('--config', help='test config file path',
                         default='./configs/ddp_config.py')
     parser.add_argument('--checkpoint', help='checkpoint file',
-                        default='./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/48000_14400.pth')
+                        default='./exps/Done/mfd_vi_ir_meanstd_ConvNext_fusion_DSC_Seg_5960/best.pth')
     parser.add_argument(
         '--work-dir',
         help=('if specified, the evaluation metric results will be dumped'

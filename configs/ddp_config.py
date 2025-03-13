@@ -1,11 +1,11 @@
-MODEL="mfd"
-if MODEL=='msrs':
+MODEL="MFD"
+if MODEL=='MSRS':
     NUM_CLASS=9
-elif MODEL=='mfd':
+elif MODEL=='MFD':
     NUM_CLASS=9
-elif MODEL=='fmb':
+elif MODEL=='FMB':
     NUM_CLASS=15
-elif MODEL=='pst':
+elif MODEL=='PST':
     NUM_CLASS=9
 TimeStep=3
 _base_ = [

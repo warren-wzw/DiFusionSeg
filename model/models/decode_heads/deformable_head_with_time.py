@@ -6,7 +6,7 @@ import warnings
 from model.models.builder import HEADS
 from model.models.decode_heads.decode_head import BaseDecodeHead
 from model.ops import resize
-
+from torchvision.transforms import ToPILImage
 try:
     from mmcv.ops.multi_scale_deform_attn import MultiScaleDeformableAttention
 except ImportError:
@@ -18,7 +18,62 @@ from mmcv.cnn.bricks.transformer import (build_transformer_layer_sequence,
                                          build_positional_encoding)
 from torch.nn.init import normal_
 
+def save_channels_as_images(tensor, output_dir='output', file_prefix='channel'):
+    """
+    将输入张量的每个通道保存为单独的图像文件。
 
+    参数:
+    - tensor: 输入的PyTorch张量，形状应为 [b, channels, height, width]。
+    - output_dir: 输出图像文件的目录。
+    - file_prefix: 输出图像文件的前缀。
+    """
+    # 确保输出目录存在
+    import os
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+
+    # 将张量从 [b, channels, height, width] 转换为 [channels, b, height, width]
+    tensor = tensor.permute(1, 0, 2, 3)
+
+    # 初始化一个转换器，用于将张量转换为图像
+    to_image = ToPILImage()
+
+    # 遍历每个通道，并将每个通道保存为图像
+    for i in range(tensor.shape[0]):  # 假设tensor.shape[0] 是通道数
+        # 获取单个通道的张量
+        single_channel = tensor[i]
+        
+        # 将张量转换为图像
+        img = to_image(single_channel.squeeze())  # 去掉批次维度
+        
+        # 保存图像，文件名格式为 "<output_dir>/<file_prefix>_<channel_index>.png"
+        img.save(os.path.join(output_dir, f'{file_prefix}_{i}.png'))
+import numpy as np
+from PIL import Image 
+ 
+def get_palette():
+    unlabeled = [0,0,0]
+    car        = [255, 82, 82]
+    person     = [179, 57, 57]
+    bike       = [204, 142, 53]
+    curve      = [205, 97, 51]
+    car_stop   = [51, 217, 178]
+    guardrail  = [255, 177, 66]
+    color_cone = [112, 111, 211]
+    bump       = [52, 172, 224]
+    palette    = np.array([unlabeled,car, person, bike, curve, car_stop, guardrail, color_cone, bump])
+    return palette
+        
+def visualize(image_name, predictions):
+    palette = get_palette()
+    for (i, pred) in enumerate(predictions):
+        pred = predictions[i].cpu().numpy()
+        img = np.zeros((pred.shape[0], pred.shape[1], 3), dtype=np.uint8)
+        for cid in range(0, len(palette)):
+            img[pred == cid] = palette[cid]
+        img = Image.fromarray(np.uint8(img))
+        img.save(f'output/'  + image_name + '.png')
+        
 @HEADS.register_module()
 class DeformableHeadWithTime(BaseDecodeHead):
     """Implements the DeformableEncoder.
@@ -127,7 +182,10 @@ class DeformableHeadWithTime(BaseDecodeHead):
             level_start_index=level_start_index)# (H*W, bs, embed_dims)
         memory = memory.permute(1, 2, 0)
         memory = memory.reshape(bs, c, h, w).contiguous()
+        # single_channel_image = memory.mean(dim=1).unsqueeze(0)
+        # save_channels_as_images(single_channel_image)
         seg_out = self.conv_seg(memory)#[batch,256,80,120]->[batch,9,80,120]
+        #visualize("seg",seg_out.argmax(1))
         return seg_out
     
     def forward_train(self, inputs, times, img_metas, gt_semantic_seg, train_cfg,img_ori,ir_ori):

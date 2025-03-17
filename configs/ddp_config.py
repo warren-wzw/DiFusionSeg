@@ -1,4 +1,4 @@
-MODEL="MFD"
+MODEL="MSRS"
 if MODEL=='MSRS':
     NUM_CLASS=9
 elif MODEL=='MFD':
@@ -7,7 +7,7 @@ elif MODEL=='FMB':
     NUM_CLASS=15
 elif MODEL=='PST':
     NUM_CLASS=9
-TimeStep=3
+TimeStep=10
 _base_ = [
     f'./_base_/{MODEL}.py',
     './_base_/default_runtime.py',

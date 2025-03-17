@@ -478,8 +478,8 @@ class DDP(EncoderDecoder):
             sigma_next, alpha_next = log_snr_to_alpha_sigma(padded_log_snr_next)
 
             input_times = self.time_mlp(log_snr)#1->[1,1024]
-            # single_channel_image = feat.mean(dim=1).unsqueeze(0)
-            # save_channels_as_images(single_channel_image)
+            single_channel_image = feat.mean(dim=1).unsqueeze(0)
+            save_channels_as_images(single_channel_image)
             mask_logit= self._decode_head_forward_test([feat], input_times)  # [bs, 256,h/4,w/4 ]-[b,9,h/4,w/4]
             mask_pred = torch.argmax(mask_logit, dim=1)#[b,1,h/4,w/4]
             """turn seg results to pred noise"""

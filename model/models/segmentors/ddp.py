@@ -201,154 +201,6 @@ class FusionModule_complex(nn.Module):
         output = output * se_weight  # [b,3,320,480]
 
         return output
-
-class FusionModule_simple(nn.Module):
-    def __init__(self):
-        super(FusionModule_simple, self).__init__()
-
-        # ----------------- 低分辨率分支处理 -----------------
-
-        # 第一层特征提取 (深度可分离卷积)
-        self.low_conv1 = nn.Sequential(
-            nn.Conv2d(256, 64, 3, padding=1, groups=64),  # 降低通道数
-            nn.Conv2d(64, 64, 1),
-            nn.BatchNorm2d(64),
-            nn.ReLU()
-        )
-
-        # 第二层特征提取
-        self.low_conv2 = nn.Sequential(
-            nn.Conv2d(64, 32, 3, padding=1),  # 降低通道数
-            nn.BatchNorm2d(32),
-            nn.ReLU()
-        )
-
-        # 并行路径
-        self.dilated_conv = nn.Sequential(
-            nn.Conv2d(64, 64, 3, padding=2, dilation=2),
-            nn.BatchNorm2d(64),
-            nn.ReLU()
-        )
-
-        self.grouped_conv = nn.Sequential(
-            nn.Conv2d(32, 32, 3, padding=1, groups=2),  # 降低通道数
-            nn.BatchNorm2d(32),
-            nn.ReLU()
-        )
-
-        # 特征融合
-        self.fusion_conv = nn.Sequential(
-            nn.Conv2d(64+32, 64, 1),  # 降低融合后的通道数
-            nn.BatchNorm2d(64),
-            nn.ReLU()
-        )
-
-        # ----------------- 高分辨率分支处理 -----------------
-        self.high_conv = nn.Sequential(
-            nn.Conv2d(4, 32, 3, padding=1),  # 降低通道数
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32, 64, 3, padding=1),  # 降低通道数
-            nn.BatchNorm2d(64),
-            nn.ReLU()
-        )
-
-        # ----------------- 跨分辨率融合模块 -----------------
-        self.cross_fusion = nn.Sequential(
-            nn.Conv2d(64+64, 128, 3, padding=1),  # 降低卷积输出通道数
-            nn.BatchNorm2d(128),
-            nn.ReLU(),
-            nn.Conv2d(128, 64, 1),
-            nn.BatchNorm2d(64),
-            nn.ReLU()
-        )
-
-        # ----------------- 输出模块 -----------------
-        self.output_conv = nn.Sequential(
-            nn.Conv2d(64, 32, 3, padding=1),  # 降低通道数
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.Conv2d(32, 3, 3, padding=1),
-            nn.Sigmoid()
-        )
-
-        # ----------------- 注意力机制 -----------------
-        self.se_block = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(3, 8, 1),  # 降低通道数
-            nn.ReLU(),
-            nn.Conv2d(8, 3, 1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x_low, x_high):
-        # ================= 低分辨率分支处理 =================
-        x_l1 = self.low_conv1(x_low)  # [b,64,80,120]
-        x_dilated = self.dilated_conv(x_l1)  # [b,64,80,120]
-        x_grouped = self.grouped_conv(self.low_conv2(x_l1))  # [b,32,80,120]
-
-        low_fusion = torch.cat([x_dilated, x_grouped], dim=1)  # [b,96,80,120]
-        low_fusion = self.fusion_conv(low_fusion)  # [b,64,80,120]
-
-        low_up = F.interpolate(low_fusion, scale_factor=4, mode='bilinear', align_corners=False)  # [b,64,320,480]
-
-        # ================= 高分辨率分支处理 =================
-        high_feat = self.high_conv(x_high)  # [b,64,320,480]
-
-        # ================= 跨分辨率融合 =================
-        combined = torch.cat([low_up, high_feat], dim=1)  # [b,128,320,480]
-        fused = self.cross_fusion(combined)  # [b,64,320,480]
-
-        # ================= 最终输出 =================
-        output = self.output_conv(fused)  # [b,3,320,480]
-
-        # ================= 注意力增强 =================
-        se_weight = self.se_block(output)  # [b,3,1,1]
-        output = output * se_weight  # [b,3,320,480]
-
-        return output        
-
-class SegmentationHead(nn.Module):
-    def __init__(self, in_channels=3, num_classes=9):
-        super(SegmentationHead, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, 256, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm2d(256)
-        self.conv2 = nn.Conv2d(256, 256, kernel_size=3, padding=1)  # 维持 256 维
-        self.bn2 = nn.BatchNorm2d(256)
-        
-        self.seg_out = nn.Conv2d(256, num_classes, kernel_size=1)  # 输出语义分割
-        self.feat_out = nn.Conv2d(256, 256, kernel_size=1)  # 生成 256 维特征
-
-    def forward(self, x):
-        x = F.relu(self.bn1(self.conv1(x)))
-        feat_fusion = F.relu(self.bn2(self.conv2(x)))  # 维持 256 维
-
-        seg_out = self.seg_out(feat_fusion)  # 语义分割
-        feat_out = self.feat_out(feat_fusion)  # 256 维特征
-
-        # 下采样到 (B, 256, 80, 120)
-        feat_out = F.avg_pool2d(feat_out, kernel_size=4, stride=4)  # 4x 下采样
-
-        return seg_out, feat_out
-
-class gatedFusion(nn.Module):
-
-    def __init__(self, dim):
-        super(gatedFusion, self).__init__()
-        self.fc1 = nn.Linear(dim, dim, bias=True)
-        self.fc2 = nn.Linear(dim, dim, bias=True)
-
-    def forward(self, x1, x2):
-        x1=x1.permute(0,2,3,1)
-        x2=x2.permute(0,2,3,1)
-        x11 = self.fc1(x1)
-        x22 = self.fc2(x2)
-        # 通过门控单元生成权重表示
-        z = torch.sigmoid(x11+x22)
-        # 对两部分输入执行加权和
-        out = z*x1 + (1-z)*x2
-        return out
-
       
 @SEGMENTORS.register_module()
 class DDP(EncoderDecoder):
@@ -544,8 +396,17 @@ class DDP(EncoderDecoder):
         feat = self.transform(feat)#turn b,512,h/4, w/4 to b,256,h/4, w/4
         """conditional input"""
         input_times = self.time_mlp(noise_level)
-        loss_decode = self._decode_head_forward_train([feat], input_times, img_metas, gt_semantic_seg,img_ori,ir_ori)
+        loss_decode,seg_logits = self._decode_head_forward_train([feat], input_times, img_metas, gt_semantic_seg,img_ori,ir_ori)
         losses.update(loss_decode)
+        """sync_loss"""
+        sef_out = resize(
+            input=seg_logits,
+            size=img.shape[2:],
+            mode='bilinear',
+            align_corners=self.align_corners)
+        loss_sync=self.syn_loss(fusion_out, ir_ori, img_ori, sef_out)
+        losses.update(loss_sync)
+        """"""
         """aux seg head"""
         loss_aux = self._auxiliary_head_forward_train([feature], img_metas, gt_semantic_seg)
         losses.update(loss_aux)
@@ -555,13 +416,13 @@ class DDP(EncoderDecoder):
         """Run forward function and calculate loss for decode head in
         training."""
         losses = dict()
-        loss_decode = self.decode_head.forward_train(x, 
+        loss_decode,seg_logits= self.decode_head.forward_train(x, 
                                                      input_times, 
                                                      img_metas,
                                                      gt_semantic_seg,
                                                      self.train_cfg,
                                                      img_ori,ir_ori)
 
-        return loss_decode
+        return loss_decode,seg_logits
 
     

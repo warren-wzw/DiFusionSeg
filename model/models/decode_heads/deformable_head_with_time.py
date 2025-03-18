@@ -191,28 +191,9 @@ class DeformableHeadWithTime(BaseDecodeHead):
     def forward_train(self, inputs, times, img_metas, gt_semantic_seg, train_cfg,img_ori,ir_ori):
         seg_logits = self.forward(inputs, times)#[b,numclssses,80,120]
         losses = self.losses(seg_logits, gt_semantic_seg)
-        return losses
+        return losses,seg_logits
 
     def forward_test(self, inputs, times):
         out=self.forward(inputs, times)
         return out
        
-    def forward_train_return_logits(self, inputs, times, img_metas, gt_semantic_seg, train_cfg):
-        """Forward function for training.
-        Args:
-            inputs (list[Tensor]): List of multi-level img features.
-            img_metas (list[dict]): List of image info dict where each dict
-                has: 'img_shape', 'scale_factor', 'flip', and may also contain
-                'filename', 'ori_shape', 'pad_shape', and 'img_norm_cfg'.
-                For details on the values of these keys see
-                `mmseg/datasets/pipelines/formatting.py:Collect`.
-            gt_semantic_seg (Tensor): Semantic segmentation masks
-                used if the architecture supports semantic segmentation task.
-            train_cfg (dict): The training config.
-
-        Returns:
-            dict[str, Tensor]: a dictionary of loss components
-        """
-        seg_logits = self(inputs, times)
-        losses = self.losses(seg_logits, gt_semantic_seg)
-        return losses, seg_logits

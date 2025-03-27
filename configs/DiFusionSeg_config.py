@@ -19,7 +19,7 @@ checkpoint_file = 'https://download.openmmlab.com/mmclassification/v0/convnext/'
 # model settings
 norm_cfg = dict(type='SyncBN', requires_grad=True)
 model = dict(
-    type='DDP',
+    type='DiFusionSeg',
     timesteps=TimeStep,
     bit_scale=0.01,
     pretrained=None,

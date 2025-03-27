@@ -201,7 +201,7 @@ class FusionModule(nn.Module):
         return output
       
 @SEGMENTORS.register_module()
-class DDP(EncoderDecoder):
+class DiFusionSeg(EncoderDecoder):
     def __init__(self,
                  bit_scale=0.1,
                  timesteps=1,
@@ -213,7 +213,7 @@ class DDP(EncoderDecoder):
                  diffusion='ddim',
                  accumulation=False,
                  **kwargs):
-        super(DDP, self).__init__(**kwargs)
+        super(DiFusionSeg, self).__init__(**kwargs)
 
         self.bit_scale = bit_scale
         self.timesteps = timesteps

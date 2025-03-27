@@ -255,10 +255,6 @@ def main():
 
     cfg.device = get_device()
     if not distributed:
-        warnings.warn(
-            'SyncBN is only supported with DDP. To be compatible with DP, '
-            'we convert SyncBN to BN. Please use dist_train.sh which can '
-            'avoid this error.')
         if not torch.cuda.is_available():
             assert digit_version(mmcv.__version__) >= digit_version('1.4.4'), \
                 'Please use MMCV >= 1.4.4 for CPU training!'

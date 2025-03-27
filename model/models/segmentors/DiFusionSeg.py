@@ -5,16 +5,15 @@ import torch.nn.functional as F
 import numpy as np
 import cv2
 
-from model.core import add_prefix
 from model.ops import resize
 from torch.special import expm1
-from einops import rearrange, reduce, repeat
+from einops import rearrange, repeat
 from mmcv.cnn import ConvModule
-from sklearn.metrics import mutual_info_score
 
 from ..builder import SEGMENTORS
 from .encoder_decoder import EncoderDecoder
 from ..losses.fusion_loss import Fusionloss
+from ..losses.synergy_loss import SynergyLoss
 from torchvision.transforms import ToPILImage
 
     
@@ -104,9 +103,9 @@ class LearnedSinusoidalPosEmb(nn.Module):
         fouriered = torch.cat((x, fouriered), dim=-1)
         return fouriered
 
-class FusionModule_complex(nn.Module):
+class FusionModule(nn.Module):
     def __init__(self):
-        super(FusionModule_complex, self).__init__()
+        super(FusionModule, self).__init__()
 
         # ----------------- 低分辨率分支处理 [b,256,80,120] -----------------
         # 第一层特征提取 (深度可分离卷积)
@@ -195,7 +194,6 @@ class FusionModule_complex(nn.Module):
         fused = self.cross_fusion(combined)  # [b,128,320,480]
         # ================= 最终输出 =================
         output = self.output_conv(fused)  # [b,3,320,480]
-        #save_single_image(img=output,save_path_img="out.png",size=[480,640])
         # ================= 注意力增强 =================
         se_weight = self.se_block(output)  # [b,3,1,1]
         output = output * se_weight  # [b,3,320,480]
@@ -257,14 +255,13 @@ class DDP(EncoderDecoder):
             nn.GELU(),
             nn.Linear(time_dim, time_dim)  # [2, 1024]
         )
-        self.fusion = FusionModule_complex()
+        self.fusion = FusionModule()
         self.fusion_loss=Fusionloss()
+        self.syn_loss=SynergyLoss()
         self.fusion_down= nn.Sequential(
         nn.Conv2d(3, 256, kernel_size=3, stride=4, padding=1),  # 下采样并扩展通道
         nn.ReLU(inplace=True)
         )
-        #self.fusionseg=SegmentationHead()
-        #self.grad_fusion=GatedFusionUnit()
     """"""
     def right_pad_dims_to(self, x, t):
         padding_dims = x.ndim - t.ndim
@@ -301,8 +298,8 @@ class DDP(EncoderDecoder):
         # feature_fusion = self.grad_fusion(feature,feat_fusion)#turn b,256, h/4, w/4,b,256, h/4, w/4 to b,256, h/4, w/4
         # #feature_fusion=feature_fusion.permute(0,3,1,2)
         """save out"""
-        save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
-                          size=img_metas[0]['ori_shape'][:-1])
+        # save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
+        #                   size=img_metas[0]['ori_shape'][:-1])
         """vi"""
         out = self.ddim_sample(feature_fusion,img_metas)
         out = resize(
@@ -331,7 +328,7 @@ class DDP(EncoderDecoder):
 
             input_times = self.time_mlp(log_snr)#1->[1,1024]
             single_channel_image = feat.mean(dim=1).unsqueeze(0)
-            save_channels_as_images(single_channel_image)
+            #save_channels_as_images(single_channel_image)
             mask_logit= self._decode_head_forward_test([feat], input_times)  # [bs, 256,h/4,w/4 ]-[b,9,h/4,w/4]
             mask_pred = torch.argmax(mask_logit, dim=1)#[b,1,h/4,w/4]
             """turn seg results to pred noise"""
@@ -399,12 +396,12 @@ class DDP(EncoderDecoder):
         loss_decode,seg_logits = self._decode_head_forward_train([feat], input_times, img_metas, gt_semantic_seg,img_ori,ir_ori)
         losses.update(loss_decode)
         """sync_loss"""
-        sef_out = resize(
+        seg_out = resize(
             input=seg_logits,
             size=img.shape[2:],
             mode='bilinear',
             align_corners=self.align_corners)
-        loss_sync=self.syn_loss(fusion_out, ir_ori, img_ori, sef_out)
+        loss_sync=self.syn_loss(fusion_out, ir_ori, img_ori, seg_out)
         losses.update(loss_sync)
         """"""
         """aux seg head"""

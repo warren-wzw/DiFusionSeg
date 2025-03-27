@@ -7,7 +7,7 @@ from argparse import ArgumentParser
 
 from model.apis import inference_segmentor, init_segmentor, show_result_pyplot
 from model.core.evaluation import get_palette
-FILENAME="./dataset/PST/test/"
+FILENAME="./dataset/TNO/"
 
 # 自然排序函数
 def natural_sort_key(s):
@@ -19,7 +19,7 @@ def main():
     parser.add_argument('--ir_file', help='ir file',default=f"{FILENAME}ir")
     parser.add_argument('--config', help='Config file',default="configs/ddp_config.py")
     parser.add_argument('--checkpoint', help='Checkpoint file',default=
-                        "./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/48000_14400.pth")
+                        "./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/best.pth")
     parser.add_argument('--out-file', default=f"./out/vi_ir/{FILENAME}", help='Path to output file')
     parser.add_argument(
         '--device', default='cuda:0', help='Device used for inference')

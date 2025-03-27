@@ -31,9 +31,9 @@ def parse_args():
     parser = argparse.ArgumentParser(
         description='mmseg test (and eval) a model')
     parser.add_argument('--config', help='test config file path',
-                        default='./configs/ddp_config.py')
+                        default='./configs/DiFusionSeg_config.py')
     parser.add_argument('--checkpoint', help='checkpoint file',
-                        default='./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/48000_12800.pth')
+                        default='./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/best.pth')
     parser.add_argument(
         '--work-dir',
         help=('if specified, the evaluation metric results will be dumped'

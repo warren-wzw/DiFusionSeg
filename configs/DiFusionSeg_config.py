@@ -7,7 +7,7 @@ elif MODEL=='FMB':
     NUM_CLASS=15
 elif MODEL=='PST':
     NUM_CLASS=9
-TimeStep=10
+TimeStep=3
 _base_ = [
     f'./_base_/{MODEL}.py',
     './_base_/default_runtime.py',

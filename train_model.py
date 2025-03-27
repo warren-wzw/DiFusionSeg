@@ -18,7 +18,7 @@ from model.apis import init_random_seed, set_random_seed, train_segmentor
 from model.datasets import build_dataset
 from model.models import build_segmentor
 from model.utils import (collect_env, get_device, get_root_logger,setup_multi_processes)
-SAVEPATH='./exps/MSRS_vi_ir_meanstd_ConvNext_Trans_fusioncomplex_0228'
+SAVEPATH='./exps/MSRS_fusioncomplex_0327'
 
 os.environ['MASTER_ADDR'] = '127.0.0.1'
 os.environ['MASTER_PORT'] = '29500'
@@ -38,7 +38,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Train a segmentor')
     parser.add_argument('--work-dir', help='the dir to save logs and models',default=SAVEPATH)
     parser.add_argument('--config', help='train config file path',
-                        default="./configs/ddp_config.py")
+                        default="./configs/DiFusionSeg_config.py")
     parser.add_argument('--load-from', help='the checkpoint file to load weights from',
                         default="./exps/Done/msrs_vi_ir_meanstd_Convnetinput4_8102/new_model.pth")
     

@@ -400,7 +400,7 @@ class RandomFlip(object):
         """copy image"""
         results['img_ori'] = copy.deepcopy(results['img'])
         """ir aug"""
-        #results['ir'] = cv2.convertScaleAbs(results['ir'], alpha=1.5, beta=-80)
+        # results['ir'] = cv2.convertScaleAbs(results['ir'], alpha=1.5, beta=-80)
         """"""
         results['ir_ori'] = copy.deepcopy(results['ir'])
         return results

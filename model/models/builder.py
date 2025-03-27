@@ -14,17 +14,6 @@ HEADS = MODELS
 LOSSES = MODELS
 SEGMENTORS = MODELS
 
-
-def build_backbone(cfg):
-    """Build backbone."""
-    return BACKBONES.build(cfg)
-
-
-def build_neck(cfg):
-    """Build neck."""
-    return NECKS.build(cfg)
-
-
 def build_head(cfg):
     """Build head."""
     return HEADS.build(cfg)

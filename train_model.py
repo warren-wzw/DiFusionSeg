@@ -1,6 +1,4 @@
-# Copyright (c) OpenMMLab. All rights reserved.
 import argparse
-import copy
 import os
 import sys
 os.chdir(sys.path[0])
@@ -17,52 +15,43 @@ from model import __version__
 from model.apis import init_random_seed, set_random_seed, train_segmentor
 from model.datasets import build_dataset
 from model.models import build_segmentor
-from model.utils import (collect_env, get_device, get_root_logger,setup_multi_processes)
+from model.utils import (collect_env, get_device, get_root_logger,setup_multi_processes,PrintModelInfo)
 SAVEPATH='./exps/MSRS_fusioncomplex_0327'
+PRETRAIN='./exps/Done/msrs_vi_ir_meanstd_Convnetinput4_8102/new_model.pth'
 
 os.environ['MASTER_ADDR'] = '127.0.0.1'
 os.environ['MASTER_PORT'] = '29500'
 os.environ['WORLD_SIZE'] = '1'
 os.environ['RANK'] = '0'
-
-def PrintModelInfo(model):
-    """Print the parameter size and shape of model detail"""
-    total_params = 0
-    for name, param in model.named_parameters():
-        num_params = torch.prod(torch.tensor(param.shape)).item() * param.element_size() / (1024 * 1024)  # 转换为MB
-        print(f"{name}: {num_params:.4f} MB, Shape: {param.shape}")
-        total_params += num_params
-    print(f"Total number of parameters: {total_params:.4f} MB")  
     
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a segmentor')
-    parser.add_argument('--work-dir', help='the dir to save logs and models',default=SAVEPATH)
-    parser.add_argument('--config', help='train config file path',
-                        default="./configs/DiFusionSeg_config.py")
-    parser.add_argument('--load-from', help='the checkpoint file to load weights from',
-                        default="./exps/Done/msrs_vi_ir_meanstd_Convnetinput4_8102/new_model.pth")
-    
-    parser.add_argument('--resume-from', help='the checkpoint file to resume from')
-    parser.add_argument('--no-validate',action='store_true',help='whether not to evaluate the checkpoint during training')
+    parser.add_argument('--config',default="./configs/DiFusionSeg_config.py",
+                        help='train config file path')
+    parser.add_argument('--resume-from', 
+                        help='the checkpoint file to resume from')
+    parser.add_argument('--no-validate',action='store_true',
+                        help='whether not to evaluate the checkpoint during training')
     group_gpus = parser.add_mutually_exclusive_group()
-    group_gpus.add_argument('--gpus',type=int,help='(Deprecated, please use --gpu-id) number of gpus to use '
-        '(only applicable to non-distributed training)',default=1)
-    group_gpus.add_argument('--gpu-ids',type=int,nargs='+',help='(Deprecated, please use --gpu-id) ids of gpus to use '
-        '(only applicable to non-distributed training)')
-    group_gpus.add_argument('--gpu-id',type=int,default=[0,1],help='id of gpu to use '
-        '(only applicable to non-distributed training)')
-    parser.add_argument('--seed', type=int, default=None, help='random seed')
+    group_gpus.add_argument('--gpus',type=int,default=1,
+                        help=' number of gpus to use (only applicable to non-distributed training)')
+    group_gpus.add_argument('--gpu-ids',type=int,nargs='+',
+                        help='ids of gpus to use (only applicable to non-distributed training)')
+    group_gpus.add_argument('--gpu-id',type=int,default=[0,1],
+                        help='id of gpu to use (only applicable to non-distributed training)')
+    parser.add_argument('--seed', type=int,default=None, 
+                        help='random seed')
     parser.add_argument('--diff_seed',action='store_true',
-        help='Whether or not set different seeds for different ranks')
-    parser.add_argument('--deterministic',action='store_true',
-        help='whether to set deterministic options for CUDNN backend.',default=True)
+                        help='Whether or not set different seeds for different ranks')
+    parser.add_argument('--deterministic',action='store_true',default=True,
+                        help='whether to set deterministic options for CUDNN backend.')
     parser.add_argument('--options',nargs='+',action=DictAction)
     parser.add_argument('--cfg-options',nargs='+',action=DictAction)
     parser.add_argument('--launcher',choices=['none', 'pytorch', 'slurm', 'mpi'],
-        default='pytorch',help='job launcher')
+                        default='pytorch',help='job launcher')
     parser.add_argument('--local_rank', type=int, default=0)
     parser.add_argument('--auto-resume',action='store_true',
-        help='resume from the latest checkpoint automatically.')
+                        help='resume from the latest checkpoint automatically.')
     args = parser.parse_args()
     os.environ['LOCAL_RANK'] = str(args.local_rank)
     return args
@@ -70,10 +59,10 @@ def parse_args():
 def main():
     args = parse_args()
     cfg = Config.fromfile(args.config)
-    if cfg.get('cudnn_benchmark', False):# set cudnn_benchmark
+    if cfg.get('cudnn_benchmark', False):
         torch.backends.cudnn.benchmark = True
-    cfg.work_dir = args.work_dir  # update configs according to CLI args if args.work_dir is not None
-    cfg.load_from = args.load_from
+    cfg.work_dir = SAVEPATH 
+    cfg.load_from = PRETRAIN
     if args.resume_from is not None:
         cfg.resume_from = args.resume_from
     cfg.gpu_ids = range(1)

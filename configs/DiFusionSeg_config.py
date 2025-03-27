@@ -1,4 +1,4 @@
-MODEL="MSRS"
+MODEL="MFD"
 if MODEL=='MSRS':
     NUM_CLASS=9
 elif MODEL=='MFD':
@@ -11,7 +11,7 @@ TimeStep=3
 _base_ = [
     f'./_base_/{MODEL}.py',
     './_base_/default_runtime.py',
-    './_base_/schedule_160k.py'
+    './_base_/schedule.py'
 ]
 custom_imports = dict(imports='mmcls.models', allow_failed_imports=False)
 checkpoint_file = 'https://download.openmmlab.com/mmclassification/v0/convnext/' \
@@ -23,33 +23,8 @@ model = dict(
     timesteps=TimeStep,
     bit_scale=0.01,
     pretrained=None,
-    backbone=dict(
-        type='mmcls.ConvNeXt',
-        arch='tiny',
-        in_channels=4,
-        out_indices=[0, 1, 2, 3],
-        drop_path_rate=0.4,
-        layer_scale_init_value=1.0,
-        gap_before_final_norm=False,
-        init_cfg=dict(
-            type='Pretrained', checkpoint=checkpoint_file,
-            prefix='backbone.')),
-    neck=[
-        dict(
-            type='FPN',
-            in_channels=[96, 192, 384,768],
-            out_channels=256,
-            act_cfg=None,
-            norm_cfg=dict(type='GN', num_groups=32),
-            num_outs=4),
-        dict(
-            type='MultiStageMerging',
-            in_channels=[256, 256, 256, 256],
-            out_channels=256,
-            kernel_size=1,
-            norm_cfg=dict(type='GN', num_groups=32),
-            act_cfg=None)
-    ],
+    backbone=dict(),
+    neck=[],
     auxiliary_head=dict(
         type='FCNHead',
         in_channels=256,
@@ -64,7 +39,8 @@ model = dict(
         loss_decode=dict(
             type='CrossEntropyLoss',
             use_sigmoid=False,
-            loss_weight=0.4)),
+            loss_weight=0.4)
+        ),
     decode_head=dict(
         type='DeformableHeadWithTime',
         in_channels=[256],
@@ -133,4 +109,4 @@ lr_config = dict(
     min_lr=0.0,
     by_epoch=False)
 find_unused_parameters = True
-evaluation = dict(interval=8000, metric='mIoU', save_best='mIoU')
+evaluation = dict(interval=10000, metric='mIoU', save_best='mIoU')

@@ -149,8 +149,8 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
         else:
             self.sampler = None
 
-        self.conv_seg = nn.Conv2d(channels, self.out_channels, kernel_size=1)
-        #self.conv_seg = DepthwiseSeparableConv(in_channels=channels, output_channels=self.out_channels, kernel_size=1)
+        #self.conv_seg = nn.Conv2d(channels, self.out_channels, kernel_size=1)
+        self.conv_seg = DepthwiseSeparableConv(in_channels=channels, output_channels=self.out_channels, kernel_size=1)
         if dropout_ratio > 0:
             self.dropout = nn.Dropout2d(dropout_ratio)
         else:

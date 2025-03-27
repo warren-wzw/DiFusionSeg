@@ -15,8 +15,7 @@ from .encoder_decoder import EncoderDecoder
 from ..losses.fusion_loss import Fusionloss
 from ..losses.synergy_loss import SynergyLoss
 from torchvision.transforms import ToPILImage
-
-    
+ 
 def log(t, eps=1e-20):
     return torch.log(t.clamp(min=eps))
 
@@ -262,7 +261,6 @@ class DiFusionSeg(EncoderDecoder):
         nn.Conv2d(3, 256, kernel_size=3, stride=4, padding=1),  # 下采样并扩展通道
         nn.ReLU(inplace=True)
         )
-    """"""
     def right_pad_dims_to(self, x, t):
         padding_dims = x.ndim - t.ndim
         if padding_dims <= 0:
@@ -288,8 +286,6 @@ class DiFusionSeg(EncoderDecoder):
         feature = self.extract_feat(img_ir)[0]#[b,256, h/4, w/4]
         """fusion"""
         fusion_out=self.fusion(feature,img_ir)
-        """fusion with seg"""
-        #_,feat_fusion=self.fusionseg(fusion_out)
         """fusion without seg"""
         feat_fusion=self.fusion_down(fusion_out)
         """"""
@@ -298,8 +294,8 @@ class DiFusionSeg(EncoderDecoder):
         # feature_fusion = self.grad_fusion(feature,feat_fusion)#turn b,256, h/4, w/4,b,256, h/4, w/4 to b,256, h/4, w/4
         # #feature_fusion=feature_fusion.permute(0,3,1,2)
         """save out"""
-        # save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
-        #                   size=img_metas[0]['ori_shape'][:-1])
+        save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
+                          size=img_metas[0]['ori_shape'][:-1])
         """vi"""
         out = self.ddim_sample(feature_fusion,img_metas)
         out = resize(
@@ -363,10 +359,6 @@ class DiFusionSeg(EncoderDecoder):
         img_ori,ir_ori=img_ori.float(),ir_ori.float()
         fusion_out=self.fusion(feature,img_ir)#[b,3,h,w]
         loss_fusion=self.fusion_loss(img_ori,ir_ori,fusion_out)
-        """fusion with seg"""
-        # fusion_seg,feat_fusion=self.fusionseg(fusion_out)
-        # loss_seg = F.cross_entropy(fusion_seg, gt_semantic_seg.squeeze(1),ignore_index=255)
-        # loss_fusion["seg_loss"]=loss_seg
         """fusion without seg"""
         feat_fusion=self.fusion_down(fusion_out)#b,256,h/4, w/4
         """"""
@@ -409,10 +401,7 @@ class DiFusionSeg(EncoderDecoder):
         losses.update(loss_aux)
         return losses
 
-    def _decode_head_forward_train(self, x, input_times, img_metas, gt_semantic_seg,img_ori,ir_ori):#feature time image infos,groundtruth
-        """Run forward function and calculate loss for decode head in
-        training."""
-        losses = dict()
+    def _decode_head_forward_train(self, x, input_times, img_metas, gt_semantic_seg,img_ori,ir_ori):
         loss_decode,seg_logits= self.decode_head.forward_train(x, 
                                                      input_times, 
                                                      img_metas,

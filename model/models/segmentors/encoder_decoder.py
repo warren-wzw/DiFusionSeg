@@ -57,7 +57,6 @@ class EncoderDecoder(BaseSegmentor):
         self.train_cfg = train_cfg
         self.test_cfg = test_cfg
 
-        #self.irnet=IrNEt()
         self._log_model_info()
         assert self.with_decode_head
 
@@ -78,9 +77,6 @@ class EncoderDecoder(BaseSegmentor):
                     self.auxiliary_head.append(builder.build_head(head_cfg))
             else:
                 self.auxiliary_head = builder.build_head(auxiliary_head)
-                # self.auxiliary_head =FCNHead(in_index=0,num_convs=1,
-                #                              concat_input=False,
-                #                              num_classes=9)
 
     def _log_model_info(self):
         param_size = 0

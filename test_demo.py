@@ -8,15 +8,20 @@ FILENAME="00038N.png"
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument('--img', help='Image file',default=f"./dataset/testimages/vi/{FILENAME}")
-    parser.add_argument('--fusion_img', help='Image file',default=f"./out/fusion/{FILENAME}")
-    parser.add_argument('--ir', help='ir file',default=f"./dataset/testimages/ir/{FILENAME}")
-    parser.add_argument('--config', help='Config file',default="configs/DiFusionSeg_config.py")
-    parser.add_argument('--checkpoint', help='Checkpoint file',default=
-                        "./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/best.pth")
-    parser.add_argument('--out-file', default=f"./out/seg/{FILENAME}", help='Path to output file')
-    parser.add_argument(
-        '--device', default='cuda:1', help='Device used for inference')
+    parser.add_argument('--img', default=f"./dataset/testimages/vi/{FILENAME}",
+                        help='rgb file')
+    parser.add_argument('--ir',default=f"./dataset/testimages/ir/{FILENAME}",
+                        help='ir file')
+    parser.add_argument('--fusion_img',default=f"./out/fusion/{FILENAME}",
+                         help='Image file')
+    parser.add_argument('--config', default="configs/DiFusionSeg_config.py",
+                        help='Config file')
+    parser.add_argument('--checkpoint', default="./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/best.pth",
+                        help='Checkpoint file')
+    parser.add_argument('--segout', default=f"./out/seg/{FILENAME}", 
+                        help='Path to output file')
+    parser.add_argument('--device', default='cuda:1', 
+                        help='Device used for inference')
     parser.add_argument(
         '--palette',
         default='msrs',
@@ -38,8 +43,7 @@ def main():
         result,
         get_palette(args.palette),
         opacity=args.opacity,
-        out_file=args.out_file,
-        fusion_img=args.fusion_img)
+        out_file=args.segout)
 
 if __name__ == '__main__':
     main()

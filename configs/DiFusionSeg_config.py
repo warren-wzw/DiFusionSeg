@@ -1,4 +1,4 @@
-MODEL="MFD"
+MODEL="MSRS"
 if MODEL=='MSRS':
     NUM_CLASS=9
 elif MODEL=='MFD':
@@ -48,6 +48,7 @@ model = dict(
         in_index=[0],
         dropout_ratio=0.,
         num_classes=NUM_CLASS,
+        dataset_name=MODEL,
         norm_cfg=norm_cfg,
         align_corners=False,
         num_feature_levels=1,

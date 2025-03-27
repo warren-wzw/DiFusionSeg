@@ -17,17 +17,18 @@ from model.models import build_segmentor
 from model.utils import build_ddp, build_dp, get_device,PrintModelInfo
 """please use RTX4090 to fork the results"""
 GPU=0
+CONFIG='./configs/DiFusionSeg_config.py'
+CHECKPOINT='./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/best.pth'
 
 def parse_args():
     parser = argparse.ArgumentParser(
         description='mmseg test (and eval) a model')
-    parser.add_argument('--config', help='test config file path',
-                        default='./configs/DiFusionSeg_config.py')
-    parser.add_argument('--checkpoint', help='checkpoint file',
-                        default='./exps/Done/mfd_vi_ir_meanstd_ConvNext_fusion_DSC_Seg_5960/best.pth')
+    parser.add_argument('--config',default=CONFIG,
+                        help='test config file path')
+    parser.add_argument('--checkpoint',default=CHECKPOINT,
+                        help='checkpoint file')
     parser.add_argument('--work-dir',
-        help=('if specified, the evaluation metric results will be dumped'
-              'into the directory as json'))
+        help=('if specified, the evaluation metric results will be dumped into the directory as json'))
     parser.add_argument('--aug-test', action='store_true',
                         help='Use Flip and Multi scale aug')
     parser.add_argument('--out', 

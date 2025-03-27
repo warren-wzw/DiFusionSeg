@@ -82,6 +82,7 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
                  out_channels=None,
                  threshold=None,
                  dropout_ratio=0.1,
+                 dataset_name=None,
                  conv_cfg=None,
                  norm_cfg=dict(type='SyncBN', requires_grad=True),
                  act_cfg=dict(type='ReLU'),
@@ -148,9 +149,10 @@ class BaseDecodeHead(BaseModule, metaclass=ABCMeta):
             self.sampler = build_pixel_sampler(sampler, context=self)
         else:
             self.sampler = None
-
-        #self.conv_seg = nn.Conv2d(channels, self.out_channels, kernel_size=1)
-        self.conv_seg = DepthwiseSeparableConv(in_channels=channels, output_channels=self.out_channels, kernel_size=1)
+        if dataset_name=="MFD":
+            self.conv_seg = DepthwiseSeparableConv(in_channels=channels, output_channels=self.out_channels, kernel_size=1)
+        else:
+            self.conv_seg = nn.Conv2d(channels, self.out_channels, kernel_size=1)
         if dropout_ratio > 0:
             self.dropout = nn.Dropout2d(dropout_ratio)
         else:

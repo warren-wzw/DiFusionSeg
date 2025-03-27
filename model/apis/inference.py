@@ -34,7 +34,7 @@ def init_segmentor(config, checkpoint=None, device='cuda:0'):
     model = build_segmentor(config.model, test_cfg=config.get('test_cfg'))
     if checkpoint is not None:
         checkpoint = load_checkpoint(model, checkpoint, map_location='cpu')
-        #torch.save(checkpoint["state_dict"],"model.pt")
+        # torch.save(checkpoint["state_dict"],"model.pt")
         # get dataset from the config
         if 'CLASSES' in checkpoint.get('meta', {}):  # TODO
             model.CLASSES = checkpoint['meta']['CLASSES']
@@ -157,7 +157,7 @@ def show_result_pyplot(model,
     plt.imshow(mmcv.bgr2rgb(img))
     plt.title(title)
     plt.tight_layout()
-    plt.show(block=block)
+    #plt.show(block=block)
     if out_file is not None:
         mmcv.imwrite(img, out_file)
 

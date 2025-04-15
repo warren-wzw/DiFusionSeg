@@ -14,11 +14,11 @@ from model import digit_version
 from model.apis import single_gpu_test, set_random_seed
 from model.datasets import build_dataloader, build_dataset
 from model.models import build_segmentor
-from model.utils import build_difusionseg, get_device,PrintModelInfo
+from model.utils import build_difusionseg, get_device,PrintModelInfo,count_params
 """please use RTX4090 to fork the results"""
 GPU=0
 CONFIG='./configs/DiFusionSeg_config.py'
-CHECKPOINT='./exps/BestMFD/best.pth'
+CHECKPOINT='./exps/BestMSRS/best.pth'
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -137,7 +137,8 @@ def main():
             'Please use MMCV >= 1.4.4 for CPU training!'
     model = revert_sync_batchnorm(model)
     model = build_difusionseg(model, cfg.device, device_ids=cfg.gpu_ids)
-    PrintModelInfo(model)
+    #PrintModelInfo(model)
+    count_params(model)
     results = single_gpu_test(
         model,
         data_loader,

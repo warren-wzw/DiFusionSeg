@@ -88,3 +88,7 @@ def PrintModelInfo(model):
         print(f"{name}: {num_params:.4f} MB, Shape: {param.shape}")
         total_params += num_params
     print(f"Total number of parameters: {total_params:.4f} MB")  
+
+def count_params(model):
+    params_million=sum(p.numel() for p in model.parameters() if p.requires_grad) / 1e6 
+    print(f"Total Parameters: {params_million:.2f}M")

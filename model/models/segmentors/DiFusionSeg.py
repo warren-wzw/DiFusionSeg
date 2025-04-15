@@ -4,7 +4,6 @@ import math
 import torch.nn.functional as F
 import numpy as np
 import cv2
-import mmcv
 import time
 
 from model.ops import resize
@@ -17,6 +16,7 @@ from .encoder_decoder import EncoderDecoder
 from ..losses.fusion_loss import Fusionloss
 from ..losses.synergy_loss import SynergyLoss
 from torchvision.transforms import ToPILImage
+from .featuremap import visualize_feature_activations, visualize_prediction_heatmap, visualize_fusion_features
  
 def log(t, eps=1e-20):
     return torch.log(t.clamp(min=eps))
@@ -279,12 +279,12 @@ class DiFusionSeg(EncoderDecoder):
             times.append(time)
         return times
     
-    def encode_decode(self, img,ir, img_metas):
-        """Encode images with backbone and decode into a semantic segmentation
-        map of the same size as input."""
+    def encode_decode(self, img,ir, img_metas,feature_vis=True):
         """"""
         img_ir = torch.cat([img, ir], dim=1)#[b,4,h,w]
         feature = self.extract_feat(img_ir)[0]#[b,256, h/4, w/4]
+        if feature_vis:
+            visualize_feature_activations(feature, img, ir, img_metas)
         start = time.time()
         """fusion"""
         fusion_out=self.fusion(feature,img_ir)
@@ -293,15 +293,18 @@ class DiFusionSeg(EncoderDecoder):
         """"""
         feature_fusion = torch.cat([feature, feat_fusion], dim=1)
         feature_fusion = self.transform(feature_fusion)#turn b,512, h/4, w/4 to b,256, h/4, w/4
-        # feature_fusion = self.grad_fusion(feature,feat_fusion)#turn b,256, h/4, w/4,b,256, h/4, w/4 to b,256, h/4, w/4
-        # #feature_fusion=feature_fusion.permute(0,3,1,2)
+        if feature_vis:
+            visualize_fusion_features(feature, feature_fusion, img, img_metas)
         """save out"""
         # save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
         #                   size=img_metas[0]['ori_shape'][:-1])
         """vi"""
-        out = self.ddim_sample(feature_fusion,img_metas)
+        if feature_vis:
+            out = self.visualize_diffusion_process(feature_fusion, img, ir, img_metas)
+            visualize_prediction_heatmap(out, img, img_metas)
+        else:
+            out = self.ddim_sample(feature_fusion,img_metas)
         end=time.time()
-        print("time:",end-start)
         out = resize(
             input=out,
             size=img.shape[2:],
@@ -413,5 +416,90 @@ class DiFusionSeg(EncoderDecoder):
                                                      img_ori,ir_ori)
 
         return loss_decode,seg_logits
-
+    def visualize_diffusion_process(self, feature, img, ir, img_metas, save_dir='./out/diffusion_vis'):
+        """可视化扩散过程中的注意力变化"""
+        import os
+        import matplotlib.pyplot as plt
+        import torch
+        from torch.nn import functional as F
+        import numpy as np
+        from einops import repeat
+        
+        os.makedirs(save_dir, exist_ok=True)
+        filename = os.path.basename(img_metas[0]['filename']).split('.')[0]
+        
+        b, c, h, w, device = *feature.shape, feature.device
+        time_pairs = self._get_sampling_timesteps(b, device=device)
+        feature = repeat(feature, 'b c h w -> (r b) c h w', r=self.randsteps)
+        mask_t = torch.randn((self.randsteps, self.decode_head.in_channels[0], h, w), device=device)
+        
+        # 存储中间结果
+        intermediate_results = [mask_t.clone()]
+        attention_maps = []
+        
+        for idx, (times_now, times_next) in enumerate(time_pairs):
+            feat = torch.cat([feature, mask_t], dim=1)
+            feat = self.transform(feat)
+            
+            # 保存当前状态的注意力图
+            attention_map = feat.mean(dim=1, keepdim=True)  # [b, 1, h/4, w/4]
+            attention_maps.append(attention_map[0].clone())
+            
+            # 常规扩散步骤
+            log_snr = self.log_snr(times_now)
+            log_snr_next = self.log_snr(times_next)
+            padded_log_snr = self.right_pad_dims_to(mask_t, log_snr)
+            padded_log_snr_next = self.right_pad_dims_to(mask_t, log_snr_next)
+            sigma, alpha = log_snr_to_alpha_sigma(padded_log_snr)
+            sigma_next, alpha_next = log_snr_to_alpha_sigma(padded_log_snr_next)
+            
+            input_times = self.time_mlp(log_snr)
+            mask_logit = self._decode_head_forward_test([feat], input_times)
+            mask_pred = torch.argmax(mask_logit, dim=1)
+            
+            mask_pred = self.embedding_table(mask_pred).permute(0, 3, 1, 2)
+            mask_pred = (torch.sigmoid(mask_pred) * 2 - 1) * self.bit_scale
+            
+            pred_noise = (mask_t - sigma * mask_pred) / alpha.clamp(min=1e-8)
+            mask_t = alpha_next * pred_noise + sigma_next * mask_pred
+            
+            # 每5步或最后一步保存
+            if idx % 5 == 0 or idx == len(time_pairs) - 1:
+                intermediate_results.append(mask_t.clone())
+        
+        # 可视化注意力演变
+        # 获取原始图像
+        rgb_img = img[0].permute(1, 2, 0).cpu().numpy()
+        rgb_img = (rgb_img - rgb_img.min()) / (rgb_img.max() - rgb_img.min() + 1e-8)
+        
+        # 绘制注意力热力图演变
+        num_steps = len(attention_maps)
+        plt.figure(figsize=(15, 4 * ((num_steps + 2) // 3)))
+        
+        for i, attn in enumerate(attention_maps):
+            # 上采样到原始图像尺寸
+            attn_map = F.interpolate(
+                attn.unsqueeze(0),  # [1, 1, h/4, w/4]
+                size=img.shape[2:], 
+                mode='bilinear',
+                align_corners=False
+            ).squeeze().cpu().numpy()
+            
+            # 归一化
+            attn_map = (attn_map - attn_map.min()) / (attn_map.max() - attn_map.min() + 1e-8)
+            
+            # 绘制叠加图
+            plt.subplot((num_steps + 2) // 3, 3, i + 1)
+            plt.imshow(rgb_img)
+            plt.imshow(attn_map, cmap='jet', alpha=0.5)
+            plt.title(f'Step {i}')
+            plt.axis('off')
+        
+        plt.tight_layout()
+        plt.savefig(f"{save_dir}/{filename}_attention_evolution.png", dpi=300, bbox_inches='tight')
+        plt.close()
+        
+        # 返回最终分割结果
+        logit = mask_logit.mean(dim=0, keepdim=True)
+        return logit
     

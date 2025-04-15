@@ -4,6 +4,8 @@ import math
 import torch.nn.functional as F
 import numpy as np
 import cv2
+import mmcv
+import time
 
 from model.ops import resize
 from torch.special import expm1
@@ -56,12 +58,11 @@ def save_single_image(img=None, ir=None, save_path_img=None, save_path_ir=None,s
 
 def save_channels_as_images(tensor, output_dir='output', file_prefix='channel'):
     """
-    将输入张量的每个通道保存为单独的图像文件。
 
-    参数:
-    - tensor: 输入的PyTorch张量，形状应为 [b, channels, height, width]。
-    - output_dir: 输出图像文件的目录。
-    - file_prefix: 输出图像文件的前缀。
+    Parm:
+    - tensor: input shape as [b, channels, height, width]。
+    - output_dir: 
+    - file_prefix: 
     """
     # 确保输出目录存在
     import os
@@ -84,7 +85,7 @@ def save_channels_as_images(tensor, output_dir='output', file_prefix='channel'):
         
         # 保存图像，文件名格式为 "<output_dir>/<file_prefix>_<channel_index>.png"
         img.save(os.path.join(output_dir, f'{file_prefix}_{i}.png'))
-              
+           
 class LearnedSinusoidalPosEmb(nn.Module):
     """ following @crowsonkb 's lead with learned sinusoidal pos emb """
     """ https://github.com/crowsonkb/v-diffusion-jax/blob/master/diffusion/models/danbooru_128.py#L8 """
@@ -284,6 +285,7 @@ class DiFusionSeg(EncoderDecoder):
         """"""
         img_ir = torch.cat([img, ir], dim=1)#[b,4,h,w]
         feature = self.extract_feat(img_ir)[0]#[b,256, h/4, w/4]
+        start = time.time()
         """fusion"""
         fusion_out=self.fusion(feature,img_ir)
         """fusion without seg"""
@@ -294,10 +296,12 @@ class DiFusionSeg(EncoderDecoder):
         # feature_fusion = self.grad_fusion(feature,feat_fusion)#turn b,256, h/4, w/4,b,256, h/4, w/4 to b,256, h/4, w/4
         # #feature_fusion=feature_fusion.permute(0,3,1,2)
         """save out"""
-        save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
-                          size=img_metas[0]['ori_shape'][:-1])
+        # save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
+        #                   size=img_metas[0]['ori_shape'][:-1])
         """vi"""
         out = self.ddim_sample(feature_fusion,img_metas)
+        end=time.time()
+        print("time:",end-start)
         out = resize(
             input=out,
             size=img.shape[2:],
@@ -395,7 +399,6 @@ class DiFusionSeg(EncoderDecoder):
             align_corners=self.align_corners)
         loss_sync=self.syn_loss(fusion_out, ir_ori, img_ori, seg_out)
         losses.update(loss_sync)
-        """"""
         """aux seg head"""
         loss_aux = self._auxiliary_head_forward_train([feature], img_metas, gt_semantic_seg)
         losses.update(loss_aux)

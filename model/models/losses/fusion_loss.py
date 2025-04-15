@@ -128,8 +128,8 @@ class Fusionloss(nn.Module):
         self.mse_criterion = torch.nn.MSELoss()
         self.ssim_loss=SSIM_loss()
         self.alpha=1
-        self.beta=1
-        self.gamma=0
+        self.beta=0.8
+        self.gamma=0.2
 
     def forward(self, image_vis, image_ir, generate_img):
         loss=dict()

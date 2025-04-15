@@ -10,7 +10,7 @@ dp_factory = {'cuda': MMDataParallel, 'cpu': MMDataParallel}
 ddp_factory = {'cuda': MMDistributedDataParallel}
 
 
-def build_dp(model, device='cuda', dim=0, *args, **kwargs):
+def build_difusionseg(model, device='cuda', dim=0, *args, **kwargs):
     """build DataParallel module by device type.
 
     if device is cuda, return a MMDataParallel module; if device is mlu,
@@ -36,7 +36,7 @@ def build_dp(model, device='cuda', dim=0, *args, **kwargs):
     return dp_factory[device](model, dim=dim, *args, **kwargs)
 
 
-def build_ddp(model, device='cuda', *args, **kwargs):
+def build_ddifusionseg(model, device='cuda', *args, **kwargs):
     """Build DistributedDataParallel module by device type.
 
     If device is cuda, return a MMDistributedDataParallel module;
@@ -79,3 +79,12 @@ def get_device():
     }
     device_list = [k for k, v in is_device_available.items() if v]
     return device_list[0] if len(device_list) == 1 else 'cpu'
+
+def PrintModelInfo(model):
+    """Print the parameter size and shape of model detail"""
+    total_params = 0
+    for name, param in model.named_parameters():
+        num_params = torch.prod(torch.tensor(param.shape)).item() * param.element_size() / (1024 * 1024)  # 转换为MB
+        print(f"{name}: {num_params:.4f} MB, Shape: {param.shape}")
+        total_params += num_params
+    print(f"Total number of parameters: {total_params:.4f} MB")  

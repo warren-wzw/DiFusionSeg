@@ -14,7 +14,7 @@ from mmcv.utils import build_from_cfg
 from model import digit_version
 from model.core import DistEvalHook, EvalHook, build_optimizer
 from model.datasets import build_dataloader, build_dataset
-from model.utils import (build_ddp, build_dp, find_latest_checkpoint,
+from model.utils import (build_ddifusionseg, build_difusionseg, find_latest_checkpoint,
                          get_root_logger)
 
 
@@ -104,7 +104,7 @@ def train_segmentor(model,
     if distributed:
         find_unused_parameters = cfg.get('find_unused_parameters', False)
         # Sets the `find_unused_parameters` parameter in
-        model = build_ddp(
+        model = build_ddifusionseg(
             model,
             cfg.device,
             device_ids=[int(os.environ['LOCAL_RANK'])],
@@ -114,7 +114,7 @@ def train_segmentor(model,
         if not torch.cuda.is_available():
             assert digit_version(mmcv.__version__) >= digit_version('1.4.4'), \
                 'Please use MMCV >= 1.4.4 for CPU training!'
-        model = build_dp(model, cfg.device, device_ids=cfg.gpu_ids)
+        model = build_difusionseg(model, cfg.device, device_ids=cfg.gpu_ids)
 
     # build runner
     optimizer = build_optimizer(model, cfg.optimizer)

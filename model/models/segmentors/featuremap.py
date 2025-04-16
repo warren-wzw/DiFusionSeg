@@ -1,8 +1,9 @@
 import torch
 import torch.nn.functional as F
+import cv2
+from matplotlib import cm
 
-
-def visualize_feature_activations(feature, original_img, ir_img, img_metas, save_dir='./out/heatmaps'):
+def visualize_feature_activations(feature, original_img, ir_img, img_metas, save_dir='./out/heatmap/heatmaps'):
     """可视化特征激活热力图"""
     import matplotlib.pyplot as plt
     import numpy as np
@@ -59,7 +60,7 @@ def visualize_feature_activations(feature, original_img, ir_img, img_metas, save
     
     print(f"Heatmap saved to {save_dir}/{filename}_heatmap.png")
     
-def visualize_prediction_heatmap(out, img, img_metas, save_dir='./out/pred_heatmaps'):
+def visualize_prediction_heatmap(out, img, img_metas, save_dir='./out/heatmap/pred_heatmaps'):
     """可视化预测结果热力图"""
     import os
     import matplotlib.pyplot as plt
@@ -105,7 +106,7 @@ def visualize_prediction_heatmap(out, img, img_metas, save_dir='./out/pred_heatm
     
     print(f"Prediction heatmap saved to {save_dir}/{filename}_pred_heatmap.png")
 
-def visualize_fusion_features(pre_fusion, post_fusion, img, img_metas, save_dir='./out/fusion_vis'):
+def visualize_fusion_features(pre_fusion, post_fusion, img, img_metas, save_dir='./out/heatmap/fusion_vis'):
     """可视化融合前后的特征变化"""
     import os
     import matplotlib.pyplot as plt
@@ -145,7 +146,20 @@ def visualize_fusion_features(pre_fusion, post_fusion, img, img_metas, save_dir=
     # 获取原始图像
     rgb_img = img[0].permute(1, 2, 0).cpu().numpy()
     rgb_img = (rgb_img - rgb_img.min()) / (rgb_img.max() - rgb_img.min() + 1e-8)
-    
+    """"""
+    pre_map_uint8 = np.uint8(pre_map * 255)
+    pre_map_color = cv2.applyColorMap(pre_map_uint8, cv2.COLORMAP_JET)
+    cv2.imwrite(f"{save_dir}/{filename}_Pre-fusion.png", pre_map_color)
+    post_map_uint8 = np.uint8(post_map * 255)
+    post_map_color = cv2.applyColorMap(post_map_uint8, cv2.COLORMAP_JET)
+    cv2.imwrite(f"{save_dir}/{filename}_Post-fusion.png", post_map_color)
+    colormap = cm.get_cmap('coolwarm')
+    colored_img = colormap(diff_map)[:, :, :3]  # 只取 RGB，去掉 alpha 通道
+    # 4. 转为 0~255 的 uint8 格式，并从 RGB 转为 BGR（OpenCV 显示）
+    colored_img_uint8 = (colored_img * 255).astype(np.uint8)
+    colored_img_bgr = cv2.cvtColor(colored_img_uint8, cv2.COLOR_RGB2BGR)
+    cv2.imwrite(f"{save_dir}/{filename}_Diff.png", colored_img_bgr)
+           
     # 可视化
     plt.figure(figsize=(15, 10))
     

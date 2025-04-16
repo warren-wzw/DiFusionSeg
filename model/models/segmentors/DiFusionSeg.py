@@ -279,12 +279,10 @@ class DiFusionSeg(EncoderDecoder):
             times.append(time)
         return times
     
-    def encode_decode(self, img,ir, img_metas,feature_vis=True):
+    def encode_decode(self, img,ir, img_metas,feature_vis=False):
         """"""
         img_ir = torch.cat([img, ir], dim=1)#[b,4,h,w]
         feature = self.extract_feat(img_ir)[0]#[b,256, h/4, w/4]
-        if feature_vis:
-            visualize_feature_activations(feature, img, ir, img_metas)
         start = time.time()
         """fusion"""
         fusion_out=self.fusion(feature,img_ir)
@@ -296,8 +294,8 @@ class DiFusionSeg(EncoderDecoder):
         if feature_vis:
             visualize_fusion_features(feature, feature_fusion, img, img_metas)
         """save out"""
-        # save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
-        #                   size=img_metas[0]['ori_shape'][:-1])
+        save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
+                          size=img_metas[0]['ori_shape'][:-1])
         """vi"""
         if feature_vis:
             out = self.visualize_diffusion_process(feature_fusion, img, ir, img_metas)
@@ -416,7 +414,7 @@ class DiFusionSeg(EncoderDecoder):
                                                      img_ori,ir_ori)
 
         return loss_decode,seg_logits
-    def visualize_diffusion_process(self, feature, img, ir, img_metas, save_dir='./out/diffusion_vis'):
+    def visualize_diffusion_process(self, feature, img, ir, img_metas, save_dir='./out/heatmap/diffusion_vis'):
         """可视化扩散过程中的注意力变化"""
         import os
         import matplotlib.pyplot as plt
@@ -463,9 +461,8 @@ class DiFusionSeg(EncoderDecoder):
             pred_noise = (mask_t - sigma * mask_pred) / alpha.clamp(min=1e-8)
             mask_t = alpha_next * pred_noise + sigma_next * mask_pred
             
-            # 每5步或最后一步保存
-            if idx % 5 == 0 or idx == len(time_pairs) - 1:
-                intermediate_results.append(mask_t.clone())
+            
+            intermediate_results.append(mask_t.clone())
         
         # 可视化注意力演变
         # 获取原始图像
@@ -491,7 +488,7 @@ class DiFusionSeg(EncoderDecoder):
             # 绘制叠加图
             plt.subplot((num_steps + 2) // 3, 3, i + 1)
             plt.imshow(rgb_img)
-            plt.imshow(attn_map, cmap='jet', alpha=0.5)
+            plt.imshow(1-attn_map, cmap='jet', alpha=0.5)
             plt.title(f'Step {i}')
             plt.axis('off')
         

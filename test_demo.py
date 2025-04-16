@@ -4,7 +4,7 @@ os.chdir(sys.path[0])
 from argparse import ArgumentParser
 from model.apis import inference_segmentor, init_segmentor, show_result_pyplot
 from model.core.evaluation import get_palette
-FILENAME="00131D.png"
+FILENAME="00038N.png"
 
 def main():
     parser = ArgumentParser()
@@ -29,7 +29,7 @@ def main():
     parser.add_argument(
         '--opacity',
         type=float,
-        default=0.3,
+        default=0.5,
         help='Opacity of painted segmentation map. In (0, 1] range.')
     args = parser.parse_args()
 

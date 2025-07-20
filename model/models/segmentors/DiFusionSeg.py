@@ -4,7 +4,8 @@ import math
 import torch.nn.functional as F
 import numpy as np
 import cv2
-import time
+import matplotlib.pyplot as plt
+from PIL import Image
 
 from model.ops import resize
 from torch.special import expm1
@@ -16,7 +17,7 @@ from .encoder_decoder import EncoderDecoder
 from ..losses.fusion_loss import Fusionloss
 from ..losses.synergy_loss import SynergyLoss
 from torchvision.transforms import ToPILImage
-from .featuremap import visualize_feature_activations, visualize_prediction_heatmap, visualize_fusion_features
+from .featuremap import visualize_feature_activations, visualize_prediction_heatmap, visualize_fusion_features,save_heatmap
  
 def log(t, eps=1e-20):
     return torch.log(t.clamp(min=eps))
@@ -54,7 +55,7 @@ def save_single_image(img=None, ir=None, save_path_img=None, save_path_ir=None,s
             align_corners=False)
         ir_np = ir[0].squeeze(0).cpu().numpy()
         ir_np = (ir_np * 255).astype(np.uint8)  # 反归一化到 [0, 255]
-        cv2.imwrite(save_path_ir, ir_np)  # 保存红外图像
+        cv2.imwrite(file_name, ir_np)  # 保存红外图像
 
 def save_channels_as_images(tensor, output_dir='output', file_prefix='channel'):
     """
@@ -106,22 +107,18 @@ class LearnedSinusoidalPosEmb(nn.Module):
 class FusionModule(nn.Module):
     def __init__(self):
         super(FusionModule, self).__init__()
-
-        # ----------------- 低分辨率分支处理 [b,256,80,120] -----------------
-        # 第一层特征提取 (深度可分离卷积)
+        """low resolution"""
         self.low_conv1 = nn.Sequential(
             nn.Conv2d(256, 128, 3, padding=1, groups=128),
             nn.Conv2d(128, 128, 1),
             nn.BatchNorm2d(128),
             nn.ReLU()
         )
-        # 第二层特征提取
         self.low_conv2 = nn.Sequential(
             nn.Conv2d(128, 64, 3, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU()
         )
-        # 并行路径
         self.dilated_conv = nn.Sequential(
             nn.Conv2d(128, 128, 3, padding=2, dilation=2),
             nn.BatchNorm2d(128),
@@ -132,13 +129,13 @@ class FusionModule(nn.Module):
             nn.BatchNorm2d(64),
             nn.ReLU()
         )
-        # 特征融合
+        """feature fusion"""
         self.fusion_conv = nn.Sequential(
             nn.Conv2d(128+64, 128, 1),
             nn.BatchNorm2d(128),
             nn.ReLU()
         )
-        # ----------------- 高分辨率分支处理 [b,4,320,480] -----------------
+        """high resolution [b,4,320,480]"""
         self.high_conv = nn.Sequential(
             nn.Conv2d(4, 64, 3, padding=1),
             nn.BatchNorm2d(64),
@@ -147,7 +144,7 @@ class FusionModule(nn.Module):
             nn.BatchNorm2d(128),
             nn.ReLU()
         )
-        # ----------------- 跨分辨率融合模块 -----------------
+        """cros  resolution fusion"""
         self.cross_fusion = nn.Sequential(
             nn.Conv2d(128+128, 256, 3, padding=1),  # 融合低分辨率上采样特征和高分辨率特征
             nn.BatchNorm2d(256),
@@ -156,7 +153,6 @@ class FusionModule(nn.Module):
             nn.BatchNorm2d(128),
             nn.ReLU()
         )
-        # ----------------- 输出模块 -----------------
         self.output_conv = nn.Sequential(
             nn.Conv2d(128, 64, 3, padding=1),
             nn.BatchNorm2d(64),
@@ -164,7 +160,6 @@ class FusionModule(nn.Module):
             nn.Conv2d(64, 3, 3, padding=1),
             nn.Sigmoid()
         )
-        # ----------------- 注意力机制 -----------------
         self.se_block = nn.Sequential(
             nn.AdaptiveAvgPool2d(1),
             nn.Conv2d(3, 16, 1),
@@ -174,34 +169,30 @@ class FusionModule(nn.Module):
         )
 
     def forward(self, x_low, x_high):
-        # ================= 低分辨率分支处理 =================
-        # 第一阶段特征
+        """low resolution """
         x_l1 = self.low_conv1(x_low)  # [b,128,80,120]
-        # 并行路径
         x_dilated = self.dilated_conv(x_l1)  # [b,128,80,120]
         x_grouped = self.grouped_conv(self.low_conv2(x_l1))  # [b,64,80,120]
-        # 特征融合
+        """feature fusion"""
         low_fusion = torch.cat([x_dilated, x_grouped], dim=1)  # [b,192,80,120]
         low_fusion = self.fusion_conv(low_fusion)  # [b,128,80,120]
-        # 上采样到高分辨率
-        low_up = F.interpolate(low_fusion, scale_factor=4, mode='bilinear', align_corners=False)  # [b,128,320,480]
-        #save_channels_as_images(low_up)
-        # ================= 高分辨率分支处理 =================
+        """upsample"""
+        low_feat = F.interpolate(low_fusion, scale_factor=4, mode='bilinear', align_corners=False)  # [b,128,320,480]
+        """high resolution"""
         high_feat = self.high_conv(x_high)  # [b,128,320,480]
-        #save_channels_as_images(high_feat)
-        # ================= 跨分辨率融合 =================
-        combined = torch.cat([low_up, high_feat], dim=1)  # [b,256,320,480]
-        fused = self.cross_fusion(combined)  # [b,128,320,480]
-        # ================= 最终输出 =================
-        output = self.output_conv(fused)  # [b,3,320,480]
-        # ================= 注意力增强 =================
+        combined = torch.cat([low_feat, high_feat], dim=1)  # [b,256,320,480]
+        feat = self.cross_fusion(combined)  # [b,128,320,480]
+        output = self.output_conv(feat)  # [b,3,320,480]
+        """attention augmentation"""
         se_weight = self.se_block(output)  # [b,3,1,1]
         output = output * se_weight  # [b,3,320,480]
-
+        """"""
+        #save_heatmap(output, save_path="./out/heatmap/output.png")
         return output
       
 @SEGMENTORS.register_module()
 class DiFusionSeg(EncoderDecoder):
+    
     def __init__(self,
                  bit_scale=0.1,
                  timesteps=1,
@@ -279,37 +270,6 @@ class DiFusionSeg(EncoderDecoder):
             times.append(time)
         return times
     
-    def encode_decode(self, img,ir, img_metas,feature_vis=False):
-        """"""
-        img_ir = torch.cat([img, ir], dim=1)#[b,4,h,w]
-        feature = self.extract_feat(img_ir)[0]#[b,256, h/4, w/4]
-        start = time.time()
-        """fusion"""
-        fusion_out=self.fusion(feature,img_ir)
-        """fusion without seg"""
-        feat_fusion=self.fusion_down(fusion_out)
-        """"""
-        feature_fusion = torch.cat([feature, feat_fusion], dim=1)
-        feature_fusion = self.transform(feature_fusion)#turn b,512, h/4, w/4 to b,256, h/4, w/4
-        if feature_vis:
-            visualize_fusion_features(feature, feature_fusion, img, img_metas)
-        """save out"""
-        save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
-                          size=img_metas[0]['ori_shape'][:-1])
-        """vi"""
-        if feature_vis:
-            out = self.visualize_diffusion_process(feature_fusion, img, ir, img_metas)
-            visualize_prediction_heatmap(out, img, img_metas)
-        else:
-            out = self.ddim_sample(feature_fusion,img_metas)
-        end=time.time()
-        out = resize(
-            input=out,
-            size=img.shape[2:],
-            mode='bilinear',
-            align_corners=self.align_corners)
-        return out
-    
     @torch.no_grad()
     def ddim_sample(self, feature,img_metas):
         b, c, h, w, device = *feature.shape, feature.device #[b,256,h/4,w/4]
@@ -328,9 +288,9 @@ class DiFusionSeg(EncoderDecoder):
             sigma_next, alpha_next = log_snr_to_alpha_sigma(padded_log_snr_next)
 
             input_times = self.time_mlp(log_snr)#1->[1,1024]
-            single_channel_image = feat.mean(dim=1).unsqueeze(0)
+            #single_channel_image = feat.mean(dim=1).unsqueeze(0)
             #save_channels_as_images(single_channel_image)
-            mask_logit= self._decode_head_forward_test([feat], input_times)  # [bs, 256,h/4,w/4 ]-[b,9,h/4,w/4]
+            mask_logit= self.decode_head.forward_test([feat], input_times)  # [bs, 256,h/4,w/4 ]-[b,9,h/4,w/4]
             mask_pred = torch.argmax(mask_logit, dim=1)#[b,1,h/4,w/4]
             """turn seg results to pred noise"""
             mask_pred = self.embedding_table(mask_pred).permute(0, 3, 1, 2)
@@ -347,16 +307,47 @@ class DiFusionSeg(EncoderDecoder):
         logit = mask_logit.mean(dim=0, keepdim=True)
         return logit
     
-    def _decode_head_forward_test(self, x, t):
-        """Run forward function and calculate loss for decode head in
-        inference."""
-        seg_logits = self.decode_head.forward_test(x, t)
-        return seg_logits
+    @torch.no_grad()
+    def sample(self, feature,img_metas):
+        b, c, h, w, device = *feature.shape, feature.device #[b,256,h/4,w/4]
+        times = torch.zeros((b,), device=device).float()
+        log_snr = self.log_snr(times)#[1]
+        input_times = self.time_mlp(log_snr)#1->[1,1024]
+        mask_logit= self.decode_head.forward_test([feature], input_times)  # [bs, 256,h/4,w/4 ]-[b,9,h/4,w/4]
+        logit = mask_logit.mean(dim=0, keepdim=True)
+        return logit
+    
+    def encode_decode(self, img,ir, img_metas,feature_vis=False):
+        """"""
+        img_ir = torch.cat([img, ir], dim=1)#[b,4,h,w]
+        feature = self.extract_feat(img_ir)[0]#[b,256, h/4, w/4]
+        """fusion"""
+        # visualize_feature_activations(feature, img, ir,img_metas)
+        fusion_out=self.fusion(feature,img_ir)
+        save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
+                          size=img_metas[0]['ori_shape'][:-1])
+        """fusion with seg"""
+        feat_fusion=self.fusion_down(fusion_out)
+        feature_fusion = torch.cat([feature, feat_fusion], dim=1)
+        feature_fusion = self.transform(feature_fusion)#turn b,512, h/4, w/4 to b,256, h/4, w/4
+        if feature_vis:
+            visualize_fusion_features(feature, feature_fusion, img, img_metas)
+        # out = self.ddim_sample(feature_fusion,img_metas)
+        out = self.sample(feature_fusion,img_metas)
+        out = resize(
+            input=out,
+            size=img.shape[2:],
+            mode='bilinear',
+            align_corners=self.align_corners)
+        # out_labels = torch.argmax(out, dim=1)  # shape [batch, height, width]
+        # out_labels = out_labels.squeeze(0)  # Remove the batch dimension
+        # out_labels = out_labels.cpu().numpy()
+        # cv2.imwrite('predicted_labels.png', out_labels.astype(np.uint8))
+        return out
 
     def forward_train(self, img, img_metas, ir,img_ori,ir_ori,gt_semantic_seg):
         losses = dict()
         """create input"""
-        # save_single_image(img=img_ori,ir=ir_ori)
         img_ir = torch.cat([img, ir], dim=1)
         """image"""
         feature = self.extract_feat(img_ir)[0]  # bs, 256, h/4, w/4
@@ -364,12 +355,11 @@ class DiFusionSeg(EncoderDecoder):
         img_ori,ir_ori=img_ori.float(),ir_ori.float()
         fusion_out=self.fusion(feature,img_ir)#[b,3,h,w]
         loss_fusion=self.fusion_loss(img_ori,ir_ori,fusion_out)
-        """fusion without seg"""
+        losses.update(loss_fusion)
+        # """fusion with seg"""
         feat_fusion=self.fusion_down(fusion_out)#b,256,h/4, w/4
-        """"""
         feature_fusion = torch.cat([feature, feat_fusion], dim=1)
         feature_fusion = self.transform(feature_fusion)#turn b,512,h/4, w/4 to b,256,h/4, w/4
-        losses.update(loss_fusion)
         """gtdown represents the embedding of semantic segmentation labels after downsampling"""
         batch, c, h, w, device, = *feature.shape, feature.device
         gt_down = resize(gt_semantic_seg.float(), size=(h, w), mode="nearest")
@@ -378,7 +368,10 @@ class DiFusionSeg(EncoderDecoder):
         gt_down = self.embedding_table(gt_down).squeeze(1).permute(0, 3, 1, 2)
         gt_down = (torch.sigmoid(gt_down) * 2 - 1) * self.bit_scale
         """sample time"""
-        times = torch.zeros((batch,), device=device).float().uniform_(self.sample_range[0],self.sample_range[1])  # [bs]
+        #times = torch.zeros((batch,), device=device).float().uniform_(self.sample_range[0],self.sample_range[1])  # [bs]
+        
+        times = torch.zeros((batch,), device=device).float()  # [bs]
+        
         """random noise"""
         noise = torch.randn_like(gt_down)
         noise_level = self.log_snr(times)
@@ -386,23 +379,26 @@ class DiFusionSeg(EncoderDecoder):
         alpha, sigma = log_snr_to_alpha_sigma(padded_noise_level)
         noised_gt = alpha * gt_down + sigma * noise
         """cat input and noise"""
-        feat = torch.cat([feature_fusion, noised_gt], dim=1)
-        feat = self.transform(feat)#turn b,512,h/4, w/4 to b,256,h/4, w/4
+        # feat = torch.cat([feature_fusion, noised_gt], dim=1)
+        # feat = self.transform(feat)#turn b,512,h/4, w/4 to b,256,h/4, w/4
         """conditional input"""
         input_times = self.time_mlp(noise_level)
-        loss_decode,seg_logits = self._decode_head_forward_train([feat], input_times, img_metas, gt_semantic_seg,img_ori,ir_ori)
+        #loss_decode,seg_logits = self._decode_head_forward_train([feat], input_times, img_metas, gt_semantic_seg,img_ori,ir_ori)
+        
+        loss_decode,seg_logits = self._decode_head_forward_train([feature_fusion], input_times, img_metas, gt_semantic_seg,img_ori,ir_ori)
+        
         losses.update(loss_decode)
         """sync_loss"""
-        seg_out = resize(
-            input=seg_logits,
-            size=img.shape[2:],
-            mode='bilinear',
-            align_corners=self.align_corners)
-        loss_sync=self.syn_loss(fusion_out, ir_ori, img_ori, seg_out)
-        losses.update(loss_sync)
+        # seg_out = resize(
+        #     input=seg_logits,
+        #     size=img.shape[2:],
+        #     mode='bilinear',
+        #     align_corners=self.align_corners)
+        # loss_sync=self.syn_loss(fusion_out, ir_ori, img_ori, seg_out)
+        # losses.update(loss_sync)
         """aux seg head"""
-        loss_aux = self._auxiliary_head_forward_train([feature], img_metas, gt_semantic_seg)
-        losses.update(loss_aux)
+        # loss_aux = self._auxiliary_head_forward_train([feature], img_metas, gt_semantic_seg)
+        # losses.update(loss_aux)
         return losses
 
     def _decode_head_forward_train(self, x, input_times, img_metas, gt_semantic_seg,img_ori,ir_ori):
@@ -414,6 +410,7 @@ class DiFusionSeg(EncoderDecoder):
                                                      img_ori,ir_ori)
 
         return loss_decode,seg_logits
+    
     def visualize_diffusion_process(self, feature, img, ir, img_metas, save_dir='./out/heatmap/diffusion_vis'):
         """可视化扩散过程中的注意力变化"""
         import os

@@ -128,7 +128,7 @@ class Fusionloss(nn.Module):
         self.mse_criterion = torch.nn.MSELoss()
         self.ssim_loss=SSIM_loss()
         self.alpha=1
-        self.beta=0.8
+        self.beta=1
         self.gamma=0.2
 
     def forward(self, image_vis, image_ir, generate_img):
@@ -146,9 +146,9 @@ class Fusionloss(nn.Module):
         generate_img_grad = self.sobelconv(generate_img)
         x_grad_joint = torch.maximum(y_grad, ir_grad)
         loss_grad = self.beta*(F.l1_loss(generate_img_grad, x_grad_joint))
-        loss_ssim=self.gamma*(self.ssim_loss(generate_img_grad.squeeze(2), image_vis) + 
-                              self.ssim_loss(generate_img_grad.squeeze(2), image_ir))
-        loss_fs = loss_in + loss_grad+loss_ssim
+        # loss_ssim=self.gamma*(self.ssim_loss(generate_img_grad.squeeze(2), image_vis) + 
+        #                       self.ssim_loss(generate_img_grad.squeeze(2), image_ir))
+        loss_fs = loss_in + loss_grad
         loss["fusion_loss"]=loss_fs
 
         return loss

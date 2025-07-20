@@ -1,7 +1,9 @@
 import torch
 import torch.nn.functional as F
 import cv2
+import os
 from matplotlib import cm
+import matplotlib.pyplot as plt
 
 def visualize_feature_activations(feature, original_img, ir_img, img_metas, save_dir='./out/heatmap/heatmaps'):
     """可视化特征激活热力图"""
@@ -59,8 +61,8 @@ def visualize_feature_activations(feature, original_img, ir_img, img_metas, save
     plt.close()
     
     print(f"Heatmap saved to {save_dir}/{filename}_heatmap.png")
-    
-def visualize_prediction_heatmap(out, img, img_metas, save_dir='./out/heatmap/pred_heatmaps'):
+   
+def  visualize_prediction_heatmap(out, img, img_metas, save_dir='./out/heatmap/pred_heatmaps'):
     """可视化预测结果热力图"""
     import os
     import matplotlib.pyplot as plt
@@ -147,10 +149,10 @@ def visualize_fusion_features(pre_fusion, post_fusion, img, img_metas, save_dir=
     rgb_img = img[0].permute(1, 2, 0).cpu().numpy()
     rgb_img = (rgb_img - rgb_img.min()) / (rgb_img.max() - rgb_img.min() + 1e-8)
     """"""
-    pre_map_uint8 = np.uint8(pre_map * 255)
+    pre_map_uint8 = np.uint8((pre_map) * 255)
     pre_map_color = cv2.applyColorMap(pre_map_uint8, cv2.COLORMAP_JET)
     cv2.imwrite(f"{save_dir}/{filename}_Pre-fusion.png", pre_map_color)
-    post_map_uint8 = np.uint8(post_map * 255)
+    post_map_uint8 = np.uint8((post_map) * 255)
     post_map_color = cv2.applyColorMap(post_map_uint8, cv2.COLORMAP_JET)
     cv2.imwrite(f"{save_dir}/{filename}_Post-fusion.png", post_map_color)
     colormap = cm.get_cmap('coolwarm')
@@ -206,3 +208,26 @@ def visualize_fusion_features(pre_fusion, post_fusion, img, img_metas, save_dir=
     plt.close()
     
     print(f"Fusion comparison saved to {save_dir}/{filename}_fusion_comparison.png")
+
+def save_heatmap(feature_map, save_path="heatmaps/low_fusion.png"):
+    """
+    Save a feature map as a clean heatmap image without titles, axes, or colorbars.
+
+    Args:
+        feature_map (Tensor): Shape [B, C, H, W].
+        save_path (str): Path to save the heatmap.
+    """
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
+
+    fmap = feature_map[0]  # 取第一个 batch
+    heatmap = torch.mean(fmap, dim=0).detach().cpu()  # [H, W]
+    heatmap = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min() + 1e-5)  # 归一化
+
+    plt.figure(figsize=(6, 5))
+    plt.imshow(heatmap, cmap='jet')
+    plt.axis('off')     # 关闭坐标轴
+    plt.tight_layout(pad=0)
+    plt.savefig(save_path, dpi=300, bbox_inches='tight', pad_inches=0)
+    plt.close()
+
+    print(f"Heatmap saved to {save_path}")

@@ -4,6 +4,8 @@ os.chdir(sys.path[0])
 import argparse
 import shutil
 import warnings
+warnings.filterwarnings("ignore", message=".*MMCV will release v2.0.0.*")
+warnings.filterwarnings("ignore", category=UserWarning, message="torch.meshgrid.*indexing")
 import mmcv
 import torch
 from mmcv.cnn.utils import revert_sync_batchnorm

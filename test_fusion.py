@@ -6,7 +6,7 @@ os.chdir(sys.path[0])
 from argparse import ArgumentParser
 
 from model.apis import inference_segmentor, init_segmentor
-FILENAME="./dataset/TNO/"
+FILENAME="/home/BlueDisk/Dataset/FusionDataset/RGBT/OverExposure/test/"
 
 # 自然排序函数
 def natural_sort_key(s):

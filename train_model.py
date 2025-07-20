@@ -7,6 +7,7 @@ import os.path as osp
 import time
 import warnings
 warnings.filterwarnings("ignore", message=".*MMCV will release v2.0.0.*")
+warnings.filterwarnings("ignore", category=UserWarning, message="torch.meshgrid.*indexing")
 import mmcv
 import torch
 import torch.distributed as dist
@@ -17,8 +18,8 @@ from model.apis import init_random_seed, set_random_seed, train_segmentor
 from model.datasets import build_dataset
 from model.models import build_segmentor
 from model.utils import (collect_env, get_device, get_root_logger,setup_multi_processes,PrintModelInfo)
-SAVEPATH='./exps/MSRS_fusioncomplex_0327'
-PRETRAIN='./exps/Done/msrs_vi_ir_meanstd_Convnetinput4_8102/new_model.pth'
+SAVEPATH='./exps/MSRS_fusioncomplex_test'
+PRETRAIN='./exps/Done/msrs_vi_ir_meanstd_Convnet3_transformer3_77/best_mIoU_iter_96000.pth'
 
 os.environ['MASTER_ADDR'] = '127.0.0.1'
 os.environ['MASTER_PORT'] = '29500'

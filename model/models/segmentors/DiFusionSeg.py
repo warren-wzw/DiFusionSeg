@@ -332,8 +332,8 @@ class DiFusionSeg(EncoderDecoder):
         feature_fusion = self.transform(feature_fusion)#turn b,512, h/4, w/4 to b,256, h/4, w/4
         if feature_vis:
             visualize_fusion_features(feature, feature_fusion, img, img_metas)
-        # out = self.ddim_sample(feature_fusion,img_metas)
-        out = self.sample(feature_fusion,img_metas)
+        out = self.ddim_sample(feature_fusion,img_metas)
+        #out = self.sample(feature_fusion,img_metas)#withot denoising
         out = resize(
             input=out,
             size=img.shape[2:],
@@ -368,10 +368,8 @@ class DiFusionSeg(EncoderDecoder):
         gt_down = self.embedding_table(gt_down).squeeze(1).permute(0, 3, 1, 2)
         gt_down = (torch.sigmoid(gt_down) * 2 - 1) * self.bit_scale
         """sample time"""
-        #times = torch.zeros((batch,), device=device).float().uniform_(self.sample_range[0],self.sample_range[1])  # [bs]
-        
-        times = torch.zeros((batch,), device=device).float()  # [bs]
-        
+        times = torch.zeros((batch,), device=device).float().uniform_(self.sample_range[0],self.sample_range[1])  # [bs]  
+        #times = torch.zeros((batch,), device=device).float()  #withot denoising 
         """random noise"""
         noise = torch.randn_like(gt_down)
         noise_level = self.log_snr(times)
@@ -379,26 +377,24 @@ class DiFusionSeg(EncoderDecoder):
         alpha, sigma = log_snr_to_alpha_sigma(padded_noise_level)
         noised_gt = alpha * gt_down + sigma * noise
         """cat input and noise"""
-        # feat = torch.cat([feature_fusion, noised_gt], dim=1)
-        # feat = self.transform(feat)#turn b,512,h/4, w/4 to b,256,h/4, w/4
+        feat = torch.cat([feature_fusion, noised_gt], dim=1)
+        feat = self.transform(feat)#turn b,512,h/4, w/4 to b,256,h/4, w/4
         """conditional input"""
         input_times = self.time_mlp(noise_level)
-        #loss_decode,seg_logits = self._decode_head_forward_train([feat], input_times, img_metas, gt_semantic_seg,img_ori,ir_ori)
-        
-        loss_decode,seg_logits = self._decode_head_forward_train([feature_fusion], input_times, img_metas, gt_semantic_seg,img_ori,ir_ori)
-        
+        loss_decode,seg_logits = self._decode_head_forward_train([feat], input_times, img_metas, gt_semantic_seg,img_ori,ir_ori)
+        #loss_decode,seg_logits = self._decode_head_forward_train([feature_fusion], input_times, img_metas, gt_semantic_seg,img_ori,ir_ori)#withot denoising
         losses.update(loss_decode)
         """sync_loss"""
-        # seg_out = resize(
-        #     input=seg_logits,
-        #     size=img.shape[2:],
-        #     mode='bilinear',
-        #     align_corners=self.align_corners)
-        # loss_sync=self.syn_loss(fusion_out, ir_ori, img_ori, seg_out)
-        # losses.update(loss_sync)
+        seg_out = resize(
+            input=seg_logits,
+            size=img.shape[2:],
+            mode='bilinear',
+            align_corners=self.align_corners)
+        loss_sync=self.syn_loss(fusion_out, ir_ori, img_ori, seg_out)
+        losses.update(loss_sync)
         """aux seg head"""
-        # loss_aux = self._auxiliary_head_forward_train([feature], img_metas, gt_semantic_seg)
-        # losses.update(loss_aux)
+        loss_aux = self._auxiliary_head_forward_train([feature], img_metas, gt_semantic_seg)
+        losses.update(loss_aux)
         return losses
 
     def _decode_head_forward_train(self, x, input_times, img_metas, gt_semantic_seg,img_ori,ir_ori):

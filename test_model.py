@@ -13,6 +13,7 @@ from mmcv.runner import (get_dist_info, init_dist, load_checkpoint,)
 from mmcv.utils import DictAction
 
 from model import digit_version
+from thop import profile
 from model.apis import single_gpu_test, set_random_seed
 from model.datasets import build_dataloader, build_dataset
 from model.models import build_segmentor
@@ -21,6 +22,7 @@ from model.utils import build_difusionseg, get_device,PrintModelInfo,count_param
 GPU=0
 CONFIG='./configs/DiFusionSeg_config.py'
 CHECKPOINT='./exps/BestMSRS/best.pth'
+OUT="./out/seg/"
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -43,7 +45,7 @@ def parse_args():
         help='evaluation metrics, which depends on the dataset, e.g., "mIoU" for generic datasets')
     parser.add_argument('--show', action='store_true', 
                         help='show results')
-    parser.add_argument('--show-dir', default='out/seg',
+    parser.add_argument('--show-dir', default=OUT,
                         help='directory where painted images will be saved')
     parser.add_argument('--gpu-collect',action='store_true',
         help='whether to use gpu to collect results.')
@@ -123,7 +125,17 @@ def main():
     data_loader = build_dataloader(dataset, **test_loader_cfg)
     """build the model and load checkpoint"""
     cfg.model.train_cfg = None
-    model = build_segmentor(cfg.model, test_cfg=cfg.get('test_cfg'))
+    cfg.device = get_device()
+    model = build_segmentor(cfg.model, test_cfg=cfg.get('test_cfg')).to(cfg.device)
+    PrintModelInfo(model)
+    count_params(model)
+    # pseudo_vi = torch.randn(1, 3, 480, 640).to(cfg.device)
+    # print(f"Model is on device: {next(model.parameters()).device}")
+    # flops, params = profile(model, inputs=([pseudo_vi],[{}]))
+    # gflops = flops / 1e9  # 除以 10^9 转换为 GFLOPs
+    # params_million = params / 1e6  # 除以 10^6 转换为百万个参数
+    # print(f"Total FLOPs: {gflops:.2f} GFLOPs") #357.16 GFLOPs
+    # print(f"Total Parameters: {params_million:.2f} M") #37.15 M
     checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
     model.CLASSES = dataset.CLASSES
     model.PALETTE = dataset.PALETTE
@@ -139,8 +151,6 @@ def main():
             'Please use MMCV >= 1.4.4 for CPU training!'
     model = revert_sync_batchnorm(model)
     model = build_difusionseg(model, cfg.device, device_ids=cfg.gpu_ids)
-    #PrintModelInfo(model)
-    count_params(model)
     results = single_gpu_test(
         model,
         data_loader,

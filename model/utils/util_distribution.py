@@ -1,8 +1,9 @@
 # Copyright (c) OpenMMLab. All rights reserved.
 import mmcv
 import torch
-from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
 
+from mmcv.parallel import MMDataParallel, MMDistributedDataParallel
+from thop import profile
 from model import digit_version
 
 dp_factory = {'cuda': MMDataParallel, 'cpu': MMDataParallel}
@@ -85,10 +86,11 @@ def PrintModelInfo(model):
     total_params = 0
     for name, param in model.named_parameters():
         num_params = torch.prod(torch.tensor(param.shape)).item() * param.element_size() / (1024 * 1024)  # 转换为MB
-        print(f"{name}: {num_params:.4f} MB, Shape: {param.shape}")
+        #print(f"{name}: {num_params:.4f} MB, Shape: {param.shape}")
         total_params += num_params
     print(f"Total number of parameters: {total_params:.4f} MB")  
 
 def count_params(model):
     params_million=sum(p.numel() for p in model.parameters() if p.requires_grad) / 1e6 
     print(f"Total Parameters: {params_million:.2f}M")
+    

@@ -6,6 +6,7 @@ import numpy as np
 import cv2
 import matplotlib.pyplot as plt
 from PIL import Image
+import time
 
 from model.ops import resize
 from torch.special import expm1
@@ -338,7 +339,8 @@ class DiFusionSeg(EncoderDecoder):
             input=out,
             size=img.shape[2:],
             mode='bilinear',
-            align_corners=self.align_corners)
+            align_corners=self.align_corners
+        )
         # out_labels = torch.argmax(out, dim=1)  # shape [batch, height, width]
         # out_labels = out_labels.squeeze(0)  # Remove the batch dimension
         # out_labels = out_labels.cpu().numpy()

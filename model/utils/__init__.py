@@ -7,5 +7,5 @@ from .util_distribution import build_difusionseg,build_ddifusionseg, get_device,
 
 __all__ = [
     'PrintModelInfo','get_root_logger', 'collect_env', 'find_latest_checkpoint',
-    'setup_multi_processes', 'build_difusionseg','build_ddifusionseg', 'get_device','count_params'
+    'setup_multi_processes', 'build_difusionseg','build_ddifusionseg', 'get_device'
 ]

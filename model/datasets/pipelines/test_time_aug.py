@@ -116,7 +116,14 @@ class MultiScaleFlipAug(object):
             img_scale = [(int(w * ratio), int(h * ratio))
                          for ratio in self.img_ratios]
         else:
-            img_scale = self.img_scale
+            #img_scale = self.img_scale
+            h, w = results['img'].shape[:2]
+            if h % 4 != 0 or w % 4 != 0:
+                new_h = (h // 4) * 4 if h % 4 == 0 else (h // 4 + 1) * 4
+                new_w = (w // 4) * 4 if w % 4 == 0 else (w // 4 + 1) * 4  # 调整为4的倍数
+                img_scale = [(new_h, new_w)]
+            else:
+                img_scale=[(results["ori_shape"][0],results["ori_shape"][1])]
         flip_aug = [False, True] if self.flip else [False] #False
         for scale in img_scale:
             for flip in flip_aug:

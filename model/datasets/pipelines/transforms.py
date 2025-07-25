@@ -263,15 +263,14 @@ class Resize(object):
                     new_h, new_w = new_short * h / w, new_short
                 else:
                     new_h, new_w = new_short, new_short * w / h
-                results['scale'] = (new_h, new_w)
            
             img, scale_factor = mmcv.imrescale(results['img'], results['scale'], return_scale=True)
             """"""
-            h, w = img.shape[:2]
-            if h % 4 != 0 or w % 4 != 0:
-                new_h = (h // 4) * 4 if h % 4 == 0 else (h // 4 + 1) * 4
-                new_w = (w // 4) * 4 if w % 4 == 0 else (w // 4 + 1) * 4  # 调整为4的倍数
-                img = mmcv.imresize(img, (new_w, new_h), interpolation='bilinear', backend=None)
+            # h, w = img.shape[:2]
+            # if h % 4 != 0 or w % 4 != 0:
+            #     new_h = (h // 4) * 4 if h % 4 == 0 else (h // 4 + 1) * 4
+            #     new_w = (w // 4) * 4 if w % 4 == 0 else (w // 4 + 1) * 4  # 调整为4的倍数
+            #     img = mmcv.imresize(img, (new_w, new_h), interpolation='bilinear', backend=None)
             """"""
             # the w_scale and h_scale has minor difference
             # a real fix should be done in the mmcv.imrescale in the future
@@ -297,11 +296,11 @@ class Resize(object):
             ir = mmcv.imrescale(
                 results[key], results['scale'], interpolation='nearest')
             """"""
-            h, w = ir.shape[:2]
-            if h % 4 != 0 or w % 4 != 0:
-                new_h = (h // 4) * 4 if h % 4 == 0 else (h // 4 + 1) * 4
-                new_w = (w // 4) * 4 if w % 4 == 0 else (w // 4 + 1) * 4  # 调整为4的倍数
-                ir = mmcv.imresize(ir, (new_w, new_h), interpolation='bilinear', backend=None)
+            # h, w = ir.shape[:2]
+            # if h % 4 != 0 or w % 4 != 0:
+            #     new_h = (h // 4) * 4 if h % 4 == 0 else (h // 4 + 1) * 4
+            #     new_w = (w // 4) * 4 if w % 4 == 0 else (w // 4 + 1) * 4  # 调整为4的倍数
+            #     ir = mmcv.imresize(ir, (new_w, new_h), interpolation='bilinear', backend=None)
             """"""  
         else:
             ir = mmcv.imresize(
@@ -399,8 +398,6 @@ class RandomFlip(object):
             results['ir'] = mmcv.imflip(results['ir'], direction=results['flip_direction']).copy()
         """copy image"""
         results['img_ori'] = copy.deepcopy(results['img'])
-        """ir aug"""
-        # results['ir'] = cv2.convertScaleAbs(results['ir'], alpha=1.5, beta=-80)
         """"""
         results['ir_ori'] = copy.deepcopy(results['ir'])
         return results

@@ -86,7 +86,9 @@ class BaseSegmentor(BaseModule, metaclass=ABCMeta):
             img_shapes = [_['img_shape'] for _ in img_meta]
             assert all(shape == img_shapes[0] for shape in img_shapes)
             pad_shapes = [_['pad_shape'] for _ in img_meta]
-            assert all(shape == pad_shapes[0] for shape in pad_shapes)
+            assert all(shape == pad_shapes[0] for shape in pad_shapes) 
+        # pseudo_ir = torch.randn(1, 1, 480, 640).to(imgs[0].device)
+        # kwargs = {'ir': pseudo_ir}   
         ir=kwargs['ir']
         if num_augs == 1:
             return self.simple_test(imgs[0],ir[0],img_metas[0])
@@ -223,28 +225,6 @@ class BaseSegmentor(BaseModule, metaclass=ABCMeta):
                     wait_time=0,
                     out_file=None,
                     opacity=0.5):
-        """Draw `result` over `img`.
-
-        Args:
-            img (str or Tensor): The image to be displayed.
-            result (Tensor): The semantic segmentation results to draw over
-                `img`.
-            palette (list[list[int]]] | np.ndarray | None): The palette of
-                segmentation map. If None is given, random palette will be
-                generated. Default: None
-            win_name (str): The window name.
-            wait_time (int): Value of waitKey param.
-                Default: 0.
-            show (bool): Whether to show the image.
-                Default: False.
-            out_file (str or None): The filename to write the image.
-                Default: None.
-            opacity(float): Opacity of painted segmentation map.
-                Default 0.5.
-                Must be in (0, 1] range.
-        Returns:
-            img (Tensor): Only if not `show` or `out_file`
-        """
         img = mmcv.imread(img)
         img = img.copy()
         seg = result[0]

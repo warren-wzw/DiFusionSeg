@@ -5,8 +5,6 @@ elif MODEL=='MFD':
     NUM_CLASS=9
 elif MODEL=='FMB':
     NUM_CLASS=15
-elif MODEL=='PST':
-    NUM_CLASS=9
 TimeStep=3
 _base_ = [
     f'./_base_/{MODEL}.py',
@@ -14,8 +12,6 @@ _base_ = [
     './_base_/schedule.py'
 ]
 custom_imports = dict(imports='mmcls.models', allow_failed_imports=False)
-checkpoint_file = 'https://download.openmmlab.com/mmclassification/v0/convnext/' \
-                  'downstream/convnext-tiny_3rdparty_32xb128-noema_in1k_20220301-795e9634.pth'  # noqa
 # model settings
 norm_cfg = dict(type='SyncBN', requires_grad=True)
 model = dict(

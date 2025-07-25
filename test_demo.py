@@ -4,7 +4,7 @@ os.chdir(sys.path[0])
 from argparse import ArgumentParser
 from model.apis import inference_segmentor, init_segmentor, show_result_pyplot
 from model.core.evaluation import get_palette
-FILENAME="00332D.png"
+FILENAME="00341D.png"
 
 def main():
     parser = ArgumentParser()

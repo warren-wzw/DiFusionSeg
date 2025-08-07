@@ -87,8 +87,10 @@ class BaseSegmentor(BaseModule, metaclass=ABCMeta):
             assert all(shape == img_shapes[0] for shape in img_shapes)
             pad_shapes = [_['pad_shape'] for _ in img_meta]
             assert all(shape == pad_shapes[0] for shape in pad_shapes) 
-        # pseudo_ir = torch.randn(1, 1, 480, 640).to(imgs[0].device)
+            
+        # pseudo_ir = torch.randn(1, 1,1, 480, 640).to(imgs[0].device)
         # kwargs = {'ir': pseudo_ir}   
+        
         ir=kwargs['ir']
         if num_augs == 1:
             return self.simple_test(imgs[0],ir[0],img_metas[0])
@@ -97,46 +99,13 @@ class BaseSegmentor(BaseModule, metaclass=ABCMeta):
 
     @auto_fp16(apply_to=('img', ))
     def forward(self, img,img_metas, return_loss=True, **kwargs):
-        """Calls either :func:`forward_train` or :func:`forward_test` depending
-        on whether ``return_loss`` is ``True``.
-
-        Note this setting will change the expected inputs. When
-        ``return_loss=True``, img and img_meta are single-nested (i.e. Tensor
-        and List[dict]), and when ``resturn_loss=False``, img and img_meta
-        should be double nested (i.e.  List[Tensor], List[List[dict]]), with
-        the outer list indicating test time augmentations.
-        """
         if return_loss:
             return self.forward_train(img,img_metas, **kwargs)
         else:
             return self.forward_test(img,img_metas, **kwargs)
+        #return self.forward_test(img,img_metas, **kwargs)
 
     def train_step(self, data_batch, optimizer, **kwargs):
-        """The iteration step during training.
-
-        This method defines an iteration step during training, except for the
-        back propagation and optimizer updating, which are done in an optimizer
-        hook. Note that in some complicated cases or models, the whole process
-        including back propagation and optimizer updating is also defined in
-        this method, such as GAN.
-
-        Args:
-            data (dict): The output of dataloader.
-            optimizer (:obj:`torch.optim.Optimizer` | dict): The optimizer of
-                runner is passed to ``train_step()``. This argument is unused
-                and reserved.
-
-        Returns:
-            dict: It should contain at least 3 keys: ``loss``, ``log_vars``,
-                ``num_samples``.
-                ``loss`` is a tensor for back propagation, which can be a
-                weighted sum of multiple losses.
-                ``log_vars`` contains all the variables to be sent to the
-                logger.
-                ``num_samples`` indicates the batch size (when the model is
-                DDP, it means the batch size on each GPU), which is used for
-                averaging the logs.
-        """
         losses = self(**data_batch)
         loss, log_vars = self._parse_losses(losses)
 

@@ -6,7 +6,7 @@ This is official Pytorch implementation of "[DiFusionSeg: Diffusion-Driven Seman
 }
 ```
 ## Framework
-![image](./images/model_arch.jpg)
+![image](./images/model_arch.png)
 
 ## Recommended Environment
  - [ ] torch  1.13.1

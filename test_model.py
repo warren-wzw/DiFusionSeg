@@ -129,14 +129,23 @@ def main():
     model = build_segmentor(cfg.model, test_cfg=cfg.get('test_cfg')).to(cfg.device)
     PrintModelInfo(model)
     count_params(model)
+    """count the FLOPs and parameters"""
     # pseudo_vi = torch.randn(1, 3, 480, 640).to(cfg.device)
     # print(f"Model is on device: {next(model.parameters()).device}")
-    # flops, params = profile(model, inputs=([pseudo_vi],[{}]))
+    # img_meta={}
+    # img_meta = [{
+    #     'ori_shape': pseudo_vi.shape[2:],
+    #     'img_shape': pseudo_vi.shape[2:],
+    #     'pad_shape': pseudo_vi.shape[2:],
+    #     'flip': False
+    # }]
+    # flops, params = profile(model, inputs=([pseudo_vi],[img_meta]))
     # gflops = flops / 1e9  # 除以 10^9 转换为 GFLOPs
     # params_million = params / 1e6  # 除以 10^6 转换为百万个参数
-    # print(f"Total FLOPs: {gflops:.2f} GFLOPs") #357.16 GFLOPs
-    # print(f"Total Parameters: {params_million:.2f} M") #37.15 M
-    checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
+    # print(f"Total FLOPs: {gflops:.2f} GFLOPs") 
+    # print(f"Total Parameters: {params_million:.2f} M") 
+    """"""+
+    checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')+
     model.CLASSES = dataset.CLASSES
     model.PALETTE = dataset.PALETTE
 

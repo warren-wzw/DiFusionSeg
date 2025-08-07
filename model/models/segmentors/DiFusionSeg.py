@@ -190,6 +190,112 @@ class FusionModule(nn.Module):
         """"""
         #save_heatmap(output, save_path="./out/heatmap/output.png")
         return output
+
+class FusionModule_(nn.Module):
+    def __init__(self):
+        super(FusionModule_, self).__init__()
+
+        # ----------------- 低分辨率分支处理 -----------------
+
+        # 第一层特征提取 (深度可分离卷积)
+        self.low_conv1 = nn.Sequential(
+            nn.Conv2d(256, 64, 3, padding=1, groups=64),  # 降低通道数
+            nn.Conv2d(64, 64, 1),
+            nn.BatchNorm2d(64),
+            nn.ReLU()
+        )
+
+        # 第二层特征提取
+        self.low_conv2 = nn.Sequential(
+            nn.Conv2d(64, 32, 3, padding=1),  # 降低通道数
+            nn.BatchNorm2d(32),
+            nn.ReLU()
+        )
+
+        # 并行路径
+        self.dilated_conv = nn.Sequential(
+            nn.Conv2d(64, 64, 3, padding=2, dilation=2),
+            nn.BatchNorm2d(64),
+            nn.ReLU()
+        )
+
+        self.grouped_conv = nn.Sequential(
+            nn.Conv2d(32, 32, 3, padding=1, groups=2),  # 降低通道数
+            nn.BatchNorm2d(32),
+            nn.ReLU()
+        )
+
+        # 特征融合
+        self.fusion_conv = nn.Sequential(
+            nn.Conv2d(64+32, 64, 1),  # 降低融合后的通道数
+            nn.BatchNorm2d(64),
+            nn.ReLU()
+        )
+
+        # ----------------- 高分辨率分支处理 -----------------
+        self.high_conv = nn.Sequential(
+            nn.Conv2d(4, 32, 3, padding=1),  # 降低通道数
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, 64, 3, padding=1),  # 降低通道数
+            nn.BatchNorm2d(64),
+            nn.ReLU()
+        )
+
+        # ----------------- 跨分辨率融合模块 -----------------
+        self.cross_fusion = nn.Sequential(
+            nn.Conv2d(64+64, 128, 3, padding=1),  # 降低卷积输出通道数
+            nn.BatchNorm2d(128),
+            nn.ReLU(),
+            nn.Conv2d(128, 64, 1),
+            nn.BatchNorm2d(64),
+            nn.ReLU()
+        )
+
+        # ----------------- 输出模块 -----------------
+        self.output_conv = nn.Sequential(
+            nn.Conv2d(64, 32, 3, padding=1),  # 降低通道数
+            nn.BatchNorm2d(32),
+            nn.ReLU(),
+            nn.Conv2d(32, 3, 3, padding=1),
+            nn.Sigmoid()
+        )
+
+        # ----------------- 注意力机制 -----------------
+        self.se_block = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(3, 8, 1),  # 降低通道数
+            nn.ReLU(),
+            nn.Conv2d(8, 3, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x_low, x_high):
+        # ================= 低分辨率分支处理 =================
+        x_l1 = self.low_conv1(x_low)  # [b,64,80,120]
+        x_dilated = self.dilated_conv(x_l1)  # [b,64,80,120]
+        x_grouped = self.grouped_conv(self.low_conv2(x_l1))  # [b,32,80,120]
+
+        low_fusion = torch.cat([x_dilated, x_grouped], dim=1)  # [b,96,80,120]
+        low_fusion = self.fusion_conv(low_fusion)  # [b,64,80,120]
+
+        low_up = F.interpolate(low_fusion, scale_factor=4, mode='bilinear', align_corners=False)  # [b,64,320,480]
+
+        # ================= 高分辨率分支处理 =================
+        high_feat = self.high_conv(x_high)  # [b,64,320,480]
+
+        # ================= 跨分辨率融合 =================
+        combined = torch.cat([low_up, high_feat], dim=1)  # [b,128,320,480]
+        fused = self.cross_fusion(combined)  # [b,64,320,480]
+
+        # ================= 最终输出 =================
+        output = self.output_conv(fused)  # [b,3,320,480]
+
+        # ================= 注意力增强 =================
+        se_weight = self.se_block(output)  # [b,3,1,1]
+        output = output * se_weight  # [b,3,320,480]
+
+        return output        
       
 @SEGMENTORS.register_module()
 class DiFusionSeg(EncoderDecoder):
@@ -325,8 +431,7 @@ class DiFusionSeg(EncoderDecoder):
         """fusion"""
         # visualize_feature_activations(feature, img, ir,img_metas)
         fusion_out=self.fusion(feature,img_ir)
-        save_single_image(img=fusion_out,save_path_img=img_metas[0]['ori_filename'],
-                          size=img_metas[0]['ori_shape'][:-1])
+ 
         """fusion with seg"""
         feat_fusion=self.fusion_down(fusion_out)
         feature_fusion = torch.cat([feature, feat_fusion], dim=1)

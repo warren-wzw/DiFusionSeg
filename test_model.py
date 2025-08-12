@@ -144,8 +144,8 @@ def main():
     # params_million = params / 1e6  # 除以 10^6 转换为百万个参数
     # print(f"Total FLOPs: {gflops:.2f} GFLOPs") 
     # print(f"Total Parameters: {params_million:.2f} M") 
-    """"""+
-    checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')+
+    """"""
+    checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
     model.CLASSES = dataset.CLASSES
     model.PALETTE = dataset.PALETTE
 

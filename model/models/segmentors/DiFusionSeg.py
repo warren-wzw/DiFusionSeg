@@ -395,8 +395,6 @@ class DiFusionSeg(EncoderDecoder):
             sigma_next, alpha_next = log_snr_to_alpha_sigma(padded_log_snr_next)
 
             input_times = self.time_mlp(log_snr)#1->[1,1024]
-            #single_channel_image = feat.mean(dim=1).unsqueeze(0)
-            #save_channels_as_images(single_channel_image)
             mask_logit= self.decode_head.forward_test([feat], input_times)  # [bs, 256,h/4,w/4 ]-[b,9,h/4,w/4]
             mask_pred = torch.argmax(mask_logit, dim=1)#[b,1,h/4,w/4]
             """turn seg results to pred noise"""
@@ -404,8 +402,6 @@ class DiFusionSeg(EncoderDecoder):
             mask_pred = (torch.sigmoid(mask_pred) * 2 - 1) * self.bit_scale #scale to -0.01-0.01
             """epsilon_t=(x_t-sigma_t*x_t)/alpha_t"""
             pred_noise = (mask_t - sigma * mask_pred) / alpha.clamp(min=1e-8)
-            # single_channel_image = pred_noise.mean(dim=1).unsqueeze(0)
-            # save_channels_as_images(single_channel_image)
             """x_t-1=alpha_t-1*epsilon_t+sigma_t-1*x_t"""
             mask_t = alpha_next*pred_noise+sigma_next*mask_pred 
             # single_channel_image = mask_t.mean(dim=1).unsqueeze(0)

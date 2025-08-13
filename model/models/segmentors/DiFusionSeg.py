@@ -411,7 +411,7 @@ class DiFusionSeg(EncoderDecoder):
         return logit
     
     @torch.no_grad()
-    def sample(self, feature,img_metas):
+    def WithoutDenoising(self, feature,img_metas):
         b, c, h, w, device = *feature.shape, feature.device #[b,256,h/4,w/4]
         times = torch.zeros((b,), device=device).float()
         log_snr = self.log_snr(times)#[1]
@@ -435,7 +435,7 @@ class DiFusionSeg(EncoderDecoder):
         if feature_vis:
             visualize_fusion_features(feature, feature_fusion, img, img_metas)
         out = self.ddim_sample(feature_fusion,img_metas)
-        #out = self.sample(feature_fusion,img_metas)#withot denoising
+        #out = self.WithoutDenoising(feature_fusion,img_metas)#withot denoising
         out = resize(
             input=out,
             size=img.shape[2:],

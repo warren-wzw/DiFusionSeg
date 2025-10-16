@@ -18,7 +18,7 @@ from model.apis import init_random_seed, set_random_seed, train_segmentor
 from model.datasets import build_dataset
 from model.models import build_segmentor
 from model.utils import (collect_env, get_device, get_root_logger,setup_multi_processes,PrintModelInfo)
-PRETRAIN='./exps/BestMSRS/best.pth'
+PRETRAIN='./exps/pretrained.pth'
 SAVEPATH='./exps/BestMSRS_/'
 
 os.environ['MASTER_ADDR'] = '127.0.0.1'

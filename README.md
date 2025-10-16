@@ -1,5 +1,5 @@
 # DiFusionSeg
-This is official Pytorch implementation of "[DiFusionSeg: Diffusion-Driven Semantic Segmentation with Multi-modal Fusion for Perception Optimization]()"
+This is official Pytorch implementation of "[DiFusionSeg: Diffusion-Driven Semantic Segmentation with Multi-modal Fusion for Perception Optimization](https://www.sciencedirect.com/science/article/pii/S0950705125015205)"
  - 
 ```
 @article{Wang2025DiFusionSegDS,

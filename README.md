@@ -98,4 +98,4 @@ python train_model.py
 }
 ```
 ## Acknowledgements
-We use MMSegmentation, DDP as the correspond codebase. We would like to express our sincere gratitude to the developers of these codebases.
+We use MMSegmentation, DDP, Segformer as the correspond codebase. We would like to express our sincere gratitude to the developers of these codebases.

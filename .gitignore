@@ -2,3 +2,4 @@ exps/
 dataset/
 out/
 .vscode/
+test_fusion.py

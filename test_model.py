@@ -27,56 +27,24 @@ OUT="./out/seg/"
 def parse_args():
     parser = argparse.ArgumentParser(
         description='mmseg test (and eval) a model')
-    parser.add_argument('--config',default=CONFIG,
-                        help='test config file path')
-    parser.add_argument('--checkpoint',default=CHECKPOINT,
-                        help='checkpoint file')
-    parser.add_argument('--work-dir',
-        help=('if specified, the evaluation metric results will be dumped into the directory as json'))
-    parser.add_argument('--aug-test', action='store_true',
-                        help='Use Flip and Multi scale aug')
-    parser.add_argument('--out', 
-                        help='output result file in pickle format')
-    parser.add_argument('--format-only',action='store_true',
-        help='Format the output results without perform evaluation. It is'
-             'useful when you want to format the result to a specific format and '
-             'submit it to the test server')
-    parser.add_argument('--eval',type=str,nargs='+',default='mIoU',
-        help='evaluation metrics, which depends on the dataset, e.g., "mIoU" for generic datasets')
-    parser.add_argument('--show', action='store_true', 
-                        help='show results')
-    parser.add_argument('--show-dir', default=OUT,
-                        help='directory where painted images will be saved')
-    parser.add_argument('--gpu-collect',action='store_true',
-        help='whether to use gpu to collect results.')
-    parser.add_argument('--gpu-id',type=int,default=GPU,
-        help='id of gpu to use ''(only applicable to non-distributed testing)')
-    parser.add_argument('--tmpdir',
-        help='tmp directory used for collecting results from multiple '
-             'workers, available when gpu_collect is not specified')
-    parser.add_argument('--options',nargs='+',action=DictAction,
-        help="--options is deprecated in favor of --cfg_options' and it will "
-             'not be supported in version v0.22.0. Override some settings in the '
-             'used config, the key-value pair in xxx=yyy format will be merged '
-             'into config file. If the value to be overwritten is a list, it '
-             'should be like key="[a,b]" or key=a,b It also allows nested '
-             'list/tuple values, e.g. key="[(a,b),(c,d)]" Note that the quotation '
-             'marks are necessary and that no white space is allowed.')
-    parser.add_argument('--cfg-options',nargs='+',action=DictAction,
-        help='override some settings in the used config, the key-value pair '
-             'in xxx=yyy format will be merged into config file. If the value to '
-             'be overwritten is a list, it should be like key="[a,b]" or key=a,b '
-             'It also allows nested list/tuple values, e.g. key="[(a,b),(c,d)]" '
-             'Note that the quotation marks are necessary and that no white space '
-             'is allowed.')
-    parser.add_argument('--eval-options',nargs='+',action=DictAction,
-        help='custom options for evaluation')
-    parser.add_argument('--launcher',choices=['none', 'pytorch', 'slurm', 'mpi'],default='none',
-        help='job launcher')
-    parser.add_argument('--opacity',type=float,default=1,
-        help='Opacity of painted segmentation map. In (0, 1] range.')
-    parser.add_argument('--seed',type=int,default=2002,
-        help='random seed')
+    parser.add_argument('--config',default=CONFIG)
+    parser.add_argument('--checkpoint',default=CHECKPOINT)
+    parser.add_argument('--work-dir')
+    parser.add_argument('--aug-test', action='store_true')
+    parser.add_argument('--out')
+    parser.add_argument('--format-only',action='store_true')
+    parser.add_argument('--eval',type=str,nargs='+',default='mIoU')
+    parser.add_argument('--show', action='store_true')
+    parser.add_argument('--show-dir', default=OUT)
+    parser.add_argument('--gpu-collect',action='store_true')
+    parser.add_argument('--gpu-id',type=int,default=GPU)
+    parser.add_argument('--tmpdir')
+    parser.add_argument('--options',nargs='+',action=DictAction)
+    parser.add_argument('--cfg-options',nargs='+',action=DictAction)
+    parser.add_argument('--eval-options',nargs='+',action=DictAction)
+    parser.add_argument('--launcher',choices=['none', 'pytorch', 'slurm', 'mpi'],default='none')
+    parser.add_argument('--opacity',type=float,default=1)
+    parser.add_argument('--seed',type=int,default=2002)
     parser.add_argument('--local_rank', type=int, default=0)
     args = parser.parse_args()
 
@@ -127,24 +95,6 @@ def main():
     cfg.model.train_cfg = None
     cfg.device = get_device()
     model = build_segmentor(cfg.model, test_cfg=cfg.get('test_cfg')).to(cfg.device)
-    PrintModelInfo(model)
-    count_params(model)
-    """count the FLOPs and parameters"""
-    # pseudo_vi = torch.randn(1, 3, 480, 640).to(cfg.device)
-    # print(f"Model is on device: {next(model.parameters()).device}")
-    # img_meta={}
-    # img_meta = [{
-    #     'ori_shape': pseudo_vi.shape[2:],
-    #     'img_shape': pseudo_vi.shape[2:],
-    #     'pad_shape': pseudo_vi.shape[2:],
-    #     'flip': False
-    # }]
-    # flops, params = profile(model, inputs=([pseudo_vi],[img_meta]))
-    # gflops = flops / 1e9  # 除以 10^9 转换为 GFLOPs
-    # params_million = params / 1e6  # 除以 10^6 转换为百万个参数
-    # print(f"Total FLOPs: {gflops:.2f} GFLOPs") 
-    # print(f"Total Parameters: {params_million:.2f} M") 
-    """"""
     checkpoint = load_checkpoint(model, args.checkpoint, map_location='cpu')
     model.CLASSES = dataset.CLASSES
     model.PALETTE = dataset.PALETTE
@@ -174,11 +124,6 @@ def main():
     rank, _ = get_dist_info()
     if rank == 0:
         if args.out:
-            warnings.warn(
-                'The behavior of ``args.out`` has been changed since MMSeg '
-                'v0.16, the pickled outputs could be seg map as type of '
-                'np.array, pre-eval results or file paths for '
-                '``dataset.format_results()``.')
             print(f'\nwriting results to {args.out}')
             mmcv.dump(results, args.out)
         if args.eval:

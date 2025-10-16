@@ -11,12 +11,7 @@ from .custom import CustomDataset
 
 
 @DATASETS.register_module()
-class CityscapesDataset(CustomDataset):
-    """Cityscapes dataset.
-
-    The ``img_suffix`` is fixed to '_leftImg8bit.png' and ``seg_map_suffix`` is
-    fixed to '_gtFine_labelTrainIds.png' for Cityscapes dataset.
-    """
+class RGBTDataset(CustomDataset):
     """MSRS"""
     CLASSES = ('unlabelled', 'car', 'person', 'bike', 'curve', 'car_stop',
                'guardrail', 'color_cone', 'bump')
@@ -46,17 +41,14 @@ class CityscapesDataset(CustomDataset):
     #     [222, 215, 158],        # unlabeled (未在 dict 中定义，保持不变)
     #     [135, 113, 90]      # dict[14] - pole
     # ]
-    """"PST"""
-    # CLASSES = ('Background','Fire_extinguisher','Backpack','Hand_drill','Rescue_randy')
 
-    # PALETTE = [[0, 0, 0], [0, 0, 255],[0, 255, 0],[255, 0, 0],[255, 255, 255]]
     
     """"""
     def __init__(self,
                  img_suffix='.png',
                  seg_map_suffix='.png',
                  **kwargs):
-        super(CityscapesDataset, self).__init__(
+        super(RGBTDataset, self).__init__(
             img_suffix=img_suffix, seg_map_suffix=seg_map_suffix, **kwargs)
 
     @staticmethod
@@ -184,7 +176,7 @@ class CityscapesDataset(CustomDataset):
             metrics.remove('cityscapes')
         if len(metrics) > 0:
             eval_results.update(
-                super(CityscapesDataset,
+                super(RGBTDataset,
                       self).evaluate(results, metrics, logger))
 
         return eval_results

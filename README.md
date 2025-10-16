@@ -2,13 +2,19 @@
 This is official Pytorch implementation of "[DiFusionSeg: Diffusion-Driven Semantic Segmentation with Multi-modal Fusion for Perception Optimization]()"
  - 
 ```
-@article{
+@article{Wang2025DiFusionSegDS,
+  title={DiFusionSeg: Diffusion-Driven Semantic Segmentation with Multi-Modal image Fusion for Enhanced Perception},
+  author={Zhiwei Wang and Defeng He and Li Zhao and Bo Liu and Yayu Zheng and Xiaoqin Zhang},
+  journal={Knowledge-Based Systems},
+  year={2025},
+  url={https://api.semanticscholar.org/CorpusID:281557716}
 }
 ```
 ## Framework
 ![image](./images/model_arch.png)
 
 ## Recommended Environment
+ - [ ] python  3.9.1
  - [ ] torch  1.13.1
  - [ ] cudatoolkit 11.8
  - [ ] torchvision 0.14.0
@@ -74,21 +80,21 @@ python train_model.py
 ```
 ### Segmentation comparison
 ![image](./images/seg.png)
+![image](./images/MsrsSegTable.png)
+![image](./images/MfdSegResult.png)
+![image](./images/MfdSegTable.png)
+![image](./images/FmbSegResult.png)
+![image](./images/FmbSegTable.png)
 ### Fusion comparison
 ![image](./images/fusion.png)
 ## If this work is helpful to you, please cite it as：
 ```
-@article{WANG2025114481,
-title = {DiFusionSeg: Diffusion-Driven Semantic Segmentation with Multi-Modal image Fusion for Enhanced Perception},
-journal = {Knowledge-Based Systems},
-pages = {114481},
-year = {2025},
-issn = {0950-7051},
-doi = {https://doi.org/10.1016/j.knosys.2025.114481},
-url = {https://www.sciencedirect.com/science/article/pii/S0950705125015205},
-author = {Zhiwei Wang and Defeng He and Li Zhao and Bo Liu and Yayu Zheng and Xiaoqin Zhang},
-keywords = {Infrared image, Visible image, Image fusion, Semantic segmentation, Diffusion model,},
-abstract = {Multi-modal data fusion harnesses complementary information from diverse sensors to enhance the comprehension of scenes. While multi-modal image integration enriches tasks like semantic segmentation, differing objectives of fusion and segmentation can cause conflicts that degrade performance. Existing methods fail to achieve an optimal trade-off between visual fusion quality and segmentation accuracy. This paper proposes DiFusionSeg, a novel fusion and segmentation model that employs a joint optimization framework to alleviate conflicts between the fusion and segmentation tasks. It not only generates fusion results with exceptional visual fidelity but also ensures precise segmentation. Through the carefully designed high-fidelity texture fusion module and diffusion-based segmentation module, DiFusionSeg effectively injects semantic guidance into the fusion process and enhances segmentation performance through denoising and feature fusion. Extensive comparative experiments on public RGB-T semantic segmentation datasets demonstrate that DiFusionSeg outperforms many state-of-the-art (SOTA) models (80.83% mIoU on MSRS, 59.6% mIoU on MFD). Additionally, it generates fusion results with exceptional visual fidelity. The source code and results will be released at https://github.com/warren-wzw/DiFusionSeg.}
+@article{Wang2025DiFusionSegDS,
+  title={DiFusionSeg: Diffusion-Driven Semantic Segmentation with Multi-Modal image Fusion for Enhanced Perception},
+  author={Zhiwei Wang and Defeng He and Li Zhao and Bo Liu and Yayu Zheng and Xiaoqin Zhang},
+  journal={Knowledge-Based Systems},
+  year={2025},
+  url={https://api.semanticscholar.org/CorpusID:281557716}
 }
 ```
 ## Acknowledgements

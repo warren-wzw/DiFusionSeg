@@ -10,7 +10,7 @@ from mmcv.utils import build_from_cfg, print_log
 from torch.utils.data.dataset import ConcatDataset as _ConcatDataset
 
 from .builder import DATASETS, PIPELINES
-from .cityscapes import CityscapesDataset
+from .RGBT import RGBTDataset
 
 
 @DATASETS.register_module()

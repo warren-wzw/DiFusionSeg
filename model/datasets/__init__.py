@@ -16,13 +16,13 @@
 # from .unused.voc import PascalVOCDataset
 
 from .builder import DATASETS, PIPELINES, build_dataloader, build_dataset
-from .cityscapes import CityscapesDataset
+from .RGBT import RGBTDataset
 from .custom import CustomDataset
 from .dataset_wrappers import (ConcatDataset, MultiImageMixDataset,
                                RepeatDataset)
 
 __all__ = [
     'DATASETS','PIPELINES','build_dataloader','build_dataset',
-    'CityscapesDataset','CustomDataset','ConcatDataset','MultiImageMixDataset','RepeatDataset'
+    'RGBTDataset','CustomDataset','ConcatDataset','MultiImageMixDataset','RepeatDataset'
 ]
 

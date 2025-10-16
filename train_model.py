@@ -18,8 +18,8 @@ from model.apis import init_random_seed, set_random_seed, train_segmentor
 from model.datasets import build_dataset
 from model.models import build_segmentor
 from model.utils import (collect_env, get_device, get_root_logger,setup_multi_processes,PrintModelInfo)
-SAVEPATH='./exps/MSRS_fusioncomplex_test'
-PRETRAIN='./exps/Done/msrs_vi_ir_meanstd_Convnet3_transformer3_77/best_mIoU_iter_96000.pth'
+PRETRAIN='./exps/BestMSRS/best.pth'
+SAVEPATH='./exps/BestMSRS_/'
 
 os.environ['MASTER_ADDR'] = '127.0.0.1'
 os.environ['MASTER_PORT'] = '29500'
@@ -28,32 +28,22 @@ os.environ['RANK'] = '0'
     
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a segmentor')
-    parser.add_argument('--config',default="./configs/DiFusionSeg_config.py",
-                        help='train config file path')
-    parser.add_argument('--resume-from', 
-                        help='the checkpoint file to resume from')
-    parser.add_argument('--no-validate',action='store_true',
-                        help='whether not to evaluate the checkpoint during training')
+    parser.add_argument('--config',default="./configs/DiFusionSeg_config.py")
+    parser.add_argument('--resume-from')
+    parser.add_argument('--no-validate',action='store_true')
     group_gpus = parser.add_mutually_exclusive_group()
-    group_gpus.add_argument('--gpus',type=int,default=1,
-                        help=' number of gpus to use (only applicable to non-distributed training)')
-    group_gpus.add_argument('--gpu-ids',type=int,nargs='+',
-                        help='ids of gpus to use (only applicable to non-distributed training)')
-    group_gpus.add_argument('--gpu-id',type=int,default=[0,1],
-                        help='id of gpu to use (only applicable to non-distributed training)')
-    parser.add_argument('--seed', type=int,default=None, 
-                        help='random seed')
-    parser.add_argument('--diff_seed',action='store_true',
-                        help='Whether or not set different seeds for different ranks')
-    parser.add_argument('--deterministic',action='store_true',default=True,
-                        help='whether to set deterministic options for CUDNN backend.')
+    group_gpus.add_argument('--gpus',type=int,default=1)
+    group_gpus.add_argument('--gpu-ids',type=int,nargs='+')
+    group_gpus.add_argument('--gpu-id',type=int,default=[0,1])
+    parser.add_argument('--seed', type=int,default=None)
+    parser.add_argument('--diff_seed',action='store_true')
+    parser.add_argument('--deterministic',action='store_true',default=True)
     parser.add_argument('--options',nargs='+',action=DictAction)
     parser.add_argument('--cfg-options',nargs='+',action=DictAction)
     parser.add_argument('--launcher',choices=['none', 'pytorch', 'slurm', 'mpi'],
-                        default='pytorch',help='job launcher')
+                        default='pytorch')
     parser.add_argument('--local_rank', type=int, default=0)
-    parser.add_argument('--auto-resume',action='store_true',
-                        help='resume from the latest checkpoint automatically.')
+    parser.add_argument('--auto-resume',action='store_true')
     args = parser.parse_args()
     os.environ['LOCAL_RANK'] = str(args.local_rank)
     return args
@@ -96,16 +86,14 @@ def main():
         cfg.model,
         train_cfg=cfg.get('train_cfg'),
         test_cfg=cfg.get('test_cfg'))
-    #PrintModelInfo(model)
     datasets = [build_dataset(cfg.data.train)]
     cfg.checkpoint_config.meta = dict(
         mmseg_version=f'{__version__}+{get_git_hash()[:7]}',
         config=cfg.pretty_text,
         CLASSES=datasets[0].CLASSES,
         PALETTE=datasets[0].PALETTE)
-    # add an attribute for visualization convenience
+
     model.CLASSES = datasets[0].CLASSES
-    # passing checkpoint meta for saving best checkpoint
     meta.update(cfg.checkpoint_config.meta)
     train_segmentor(
         model,

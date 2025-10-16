@@ -17,20 +17,11 @@ def main():
     parser.add_argument('--img_file', help='Image file',default=f"{FILENAME}vi")
     parser.add_argument('--ir_file', help='ir file',default=f"{FILENAME}ir")
     parser.add_argument('--config', help='Config file',default="configs/DiFusionSeg_config.py")
-    parser.add_argument('--checkpoint', help='Checkpoint file',default=
-                        "./exps/Done/msrs_vi_ir_meanstd_ConvNext_fusioncomplex_8083/best.pth")
-    parser.add_argument('--out-file', default=f"./out/vi_ir/{FILENAME}", help='Path to output file')
-    parser.add_argument(
-        '--device', default='cuda:0', help='Device used for inference')
-    parser.add_argument(
-        '--palette',
-        default='msrs',
-        help='Color palette used for segmentation map')
-    parser.add_argument(
-        '--opacity',
-        type=float,
-        default=0.5,
-        help='Opacity of painted segmentation map. In (0, 1] range.')
+    parser.add_argument('--checkpoint', default="./exps/BestMSRS/best.pth")
+    parser.add_argument('--out-file', default=f"./out/vi_ir/{FILENAME}")
+    parser.add_argument('--device', default='cuda:0')
+    parser.add_argument('--palette',default='msrs')
+    parser.add_argument('--opacity',type=float,default=0.5)
     args = parser.parse_args()
 
     # build the model from a config file and a checkpoint file

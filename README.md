@@ -26,7 +26,7 @@ This is official Pytorch implementation of "[DiFusionSeg: Diffusion-Driven Seman
 
 ## Experiments 
 ### Dataset & Checkpoints & Results
-The checkpoints and results can be in [DiFusionSeg](https://www.dropbox.com/scl/fo/zjbyp7pml54epiz8wg4gj/AIGFfGfG8Ea_XU25WwyxQno?rlkey=1ywmahphox5f4kdqfrr8h1234&st=mag0vanh&dl=0). Download MSRS dataset from [MSRS](https://pan.baidu.com/s/18q_3IEHKZ48YBy2PzsOtRQ?pwd=MSRS) and the MFNet dataset from [MFNet](https://www.mi.t.u-tokyo.ac.jp/static/projects/mil_multispectral/).
+The checkpoints and results can be in [DiFusionSeg](https://www.dropbox.com/scl/fo/zjbyp7pml54epiz8wg4gj/AIGFfGfG8Ea_XU25WwyxQno?rlkey=47uzbn6jxn27o4bjvdvo7yk47&st=gkwxc03g&dl=0). Download MSRS dataset from [MSRS](https://pan.baidu.com/s/18q_3IEHKZ48YBy2PzsOtRQ?pwd=MSRS) and the MFNet dataset from [MFNet](https://www.mi.t.u-tokyo.ac.jp/static/projects/mil_multispectral/).
 If you need to evaluate other datasets, please organize them as follows:
 ```
 ├── /dataset
